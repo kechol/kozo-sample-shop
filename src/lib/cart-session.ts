@@ -28,3 +28,8 @@ export async function ensureCartId(): Promise<string> {
   });
   return cartId;
 }
+
+/** Forgets the visitor's cart, so the next person on a shared browser starts empty. */
+export async function clearCartId(): Promise<void> {
+  (await cookies()).delete(CART_COOKIE);
+}

@@ -89,3 +89,22 @@ test("lists a signed-in purchase in the buyer's history only", async ({
   expect(response?.status()).toBe(404);
   await otherBuyer.close();
 });
+
+test("hides a signed-in order and the cart after sign-out on a shared browser", async ({
+  page,
+}) => {
+  await signIn(page, "buyer@example.com", "buyer-password-123");
+  await expect(page).toHaveURL(/\/account\/orders$/);
+  await buy(page, "linen-apron");
+  const orderUrl = page.url();
+  await page.goto("/products/wooden-spoon-set");
+  await page.getByRole("button", { name: "Add to cart" }).click();
+  await expect(page.getByTestId("cart-count")).toHaveText("1");
+
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible();
+  await expect(page.getByTestId("cart-count")).toHaveText("0");
+
+  const response = await page.goto(orderUrl);
+  expect(response?.status()).toBe(404);
+});

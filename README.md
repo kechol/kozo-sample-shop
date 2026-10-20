@@ -28,8 +28,9 @@ pnpm dev            # http://localhost:3000, in another terminal
 
 Buyers can check out as guests or create an account with an email and password
 (better-auth). Orders placed while signed in appear under **Your orders**. An
-order page is shown only to its signed-in buyer or to the browser whose cart
-placed it.
+order page is shown only to its buyer: the signed-in account for an account's
+order, or the browser whose cart placed it for a guest order. Signing out
+clears the cart, so the next person on a shared browser starts empty.
 
 `pnpm db:seed` creates two test-only accounts:
 

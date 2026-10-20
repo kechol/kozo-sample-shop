@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getAuth } from "@/lib/auth";
+import { clearCartId } from "@/lib/cart-session";
 import { safeNextPath } from "@/lib/redirect";
 
 export type AuthFormState = { error?: string };
@@ -60,5 +61,6 @@ export async function signUpAction(
 
 export async function signOutAction() {
   await getAuth().api.signOut({ headers: await headers() });
+  await clearCartId();
   redirect("/");
 }

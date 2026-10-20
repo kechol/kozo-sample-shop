@@ -214,13 +214,14 @@ export async function getOrder(db: Database, orderId: string) {
 
 export type OrderViewer = { cartId: string | null; userId: string | null };
 
-// The order page shows the shipping address, so only its buyer may see it: the signed-in
-// owner, or the browser whose cart placed it.
+// The order page shows the shipping address, so only its buyer may see it. An account's
+// order needs that account; the cart cookie proves ownership only for guest orders, since
+// the cookie outlives a sign-out on a shared browser.
 export function canViewOrder(
   order: { cartId: string | null; userId: string | null },
   viewer: OrderViewer,
 ): boolean {
-  if (order.userId !== null && order.userId === viewer.userId) return true;
+  if (order.userId !== null) return order.userId === viewer.userId;
   return order.cartId !== null && order.cartId === viewer.cartId;
 }
 

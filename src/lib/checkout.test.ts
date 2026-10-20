@@ -34,6 +34,15 @@ describe("canViewOrder", () => {
     ).toBe(false);
   });
 
+  it("ignores the cart cookie for an account's order", () => {
+    expect(
+      canViewOrder({ cartId, userId: "user-1" }, { cartId, userId: null }),
+    ).toBe(false);
+    expect(
+      canViewOrder({ cartId, userId: "user-1" }, { cartId, userId: "user-2" }),
+    ).toBe(false);
+  });
+
   it("never matches on missing ids", () => {
     expect(
       canViewOrder(

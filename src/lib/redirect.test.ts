@@ -13,6 +13,11 @@ describe("safeNextPath", () => {
       "//evil.example.com",
       "/\\evil.example.com",
       "javascript:alert(1)",
+      "/.//evil.example.com",
+      "/%2e//evil.example.com",
+      "/a/..//evil.example.com",
+      "/\tevil",
+      "/\n/evil.example.com",
       "",
     ]) {
       expect(safeNextPath(value, "/fallback")).toBe("/fallback");

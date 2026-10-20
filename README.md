@@ -20,8 +20,25 @@ cp .env.example .env
 pnpm db:up          # PostgreSQL on 127.0.0.1:5433
 pnpm db:migrate
 pnpm db:seed
-pnpm dev            # http://localhost:3000
+pnpm payments:dev   # fake payment provider on 127.0.0.1:4010
+pnpm dev            # http://localhost:3000, in another terminal
 ```
+
+## Payments
+
+Checkout charges cards through a fake payment provider in
+[`services/fake-payments`](services/fake-payments). It accepts only the
+test-only key in `.env.example` and decides the outcome by card number:
+
+| Card number | Outcome |
+| --- | --- |
+| 4242 4242 4242 4242 | Succeeds |
+| 4000 0000 0000 0002 | Declined |
+| 4000 0000 0000 0077 | Succeeds after a delay (3 seconds by default) |
+
+Checkout reserves stock and creates the order in one transaction, then
+charges the card. A declined or failed charge marks the order
+`payment_failed`, returns the stock and keeps the cart.
 
 ## Checks
 
@@ -31,7 +48,7 @@ pnpm lint
 pnpm test:unit
 pnpm test:integration   # uses the shop_test database
 pnpm build
-pnpm test:e2e           # serves the production build against shop_test
+pnpm test:e2e           # serves the production build and the fake provider against shop_test
 ```
 
 kozo runs the same commands as gates defined in

@@ -21,7 +21,8 @@
     "db:down": "docker compose down",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file-if-exists=.env src/db/migrate.ts",
-    "db:seed": "tsx --env-file-if-exists=.env src/db/seed.ts"
+    "db:seed": "tsx --env-file-if-exists=.env src/db/seed.ts",
+    "payments:dev": "tsx --env-file-if-exists=.env services/fake-payments/server.ts"
   },
   "dependencies": {
     "drizzle-orm": "0.45.4",

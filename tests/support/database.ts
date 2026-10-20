@@ -17,3 +17,10 @@ export async function resetTestDatabase() {
   await seed(db);
   await db.$client.end();
 }
+
+export async function reseedTestDatabase(
+  db: ReturnType<typeof createTestDatabase>,
+) {
+  await truncate(db);
+  await seed(db);
+}

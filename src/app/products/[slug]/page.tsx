@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AddToCartForm } from "@/components/add-to-cart-form";
 import { getDatabase } from "@/db/client";
 import { getProduct } from "@/lib/catalog";
 import { formatPrice } from "@/lib/money";
@@ -40,6 +41,9 @@ export default async function ProductPage({
         <p className="mt-4 text-sm" data-testid="stock">
           {product.stock > 0 ? `${product.stock} in stock` : "Sold out"}
         </p>
+        {product.stock > 0 && (
+          <AddToCartForm productId={product.id} stock={product.stock} />
+        )}
       </div>
     </article>
   );

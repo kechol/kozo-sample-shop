@@ -22,7 +22,9 @@ export async function seed(db: Database) {
 }
 
 export async function truncate(db: Database) {
-  await db.execute(sql`TRUNCATE products, categories RESTART IDENTITY CASCADE`);
+  await db.execute(
+    sql`TRUNCATE order_items, orders, cart_items, carts, products, categories RESTART IDENTITY CASCADE`,
+  );
 }
 
 if (import.meta.main) {

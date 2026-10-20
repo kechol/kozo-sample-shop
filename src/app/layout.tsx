@@ -3,6 +3,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { SearchForm } from "@/components/search-form";
 import { getDatabase } from "@/db/client";
+import { countCartItems } from "@/lib/cart";
+import { readCartId } from "@/lib/cart-session";
 import { listCategories } from "@/lib/catalog";
 import "./globals.css";
 
@@ -19,7 +21,12 @@ export default async function RootLayout({
 }: {
   children: ReactNode;
 }) {
-  const categories = await listCategories(getDatabase());
+  const db = getDatabase();
+  const cartId = await readCartId();
+  const [categories, cartCount] = await Promise.all([
+    listCategories(db),
+    cartId ? countCartItems(db, cartId) : 0,
+  ]);
   return (
     <html lang="en">
       <body className="min-h-screen bg-stone-50 text-stone-900 antialiased">
@@ -42,8 +49,14 @@ export default async function RootLayout({
                 </Link>
               ))}
             </nav>
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-4">
               <SearchForm />
+              <Link
+                href="/cart"
+                className="text-sm font-medium hover:text-brand"
+              >
+                Cart (<span data-testid="cart-count">{cartCount}</span>)
+              </Link>
             </div>
           </div>
         </header>

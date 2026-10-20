@@ -1,7 +1,11 @@
 import { asc, eq, inArray, sql } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import { cartItems, orderItems, orders, products } from "@/db/schema";
-import { type PaymentsClient, PaymentsError } from "@/lib/payments/client";
+import {
+  type ChargeResult,
+  type PaymentsClient,
+  PaymentsError,
+} from "@/lib/payments/client";
 
 export type ShippingDetails = {
   email: string;
@@ -16,7 +20,8 @@ export type PlaceOrderResult =
   | { ok: true; orderId: string }
   | { ok: false; reason: "empty_cart" }
   | { ok: false; reason: "insufficient_stock"; productNames: string[] }
-  | { ok: false; reason: "payment_failed"; orderId: string; code: string };
+  | { ok: false; reason: "payment_failed"; orderId: string; code: string }
+  | { ok: false; reason: "payment_pending"; orderId: string };
 
 export async function placeOrder(
   db: Database,
@@ -27,31 +32,32 @@ export async function placeOrder(
   if (!reserved.ok) return reserved;
   const { orderId, totalCents } = reserved;
 
-  let code: string;
+  let charge: ChargeResult;
   try {
-    const charge = await payments.charge({
+    charge = await payments.charge({
       amountCents: totalCents,
       cardNumber: input.cardNumber,
       idempotencyKey: orderId,
     });
-    if (charge.status === "succeeded") {
-      await db.transaction(async (tx) => {
-        await tx
-          .update(orders)
-          .set({ status: "paid", paymentChargeId: charge.chargeId })
-          .where(eq(orders.id, orderId));
-        await tx.delete(cartItems).where(eq(cartItems.cartId, input.cartId));
-      });
-      return { ok: true, orderId };
-    }
-    code = charge.code;
   } catch (error) {
     if (!(error instanceof PaymentsError)) throw error;
-    code = "provider_unavailable";
+    // A timeout or an unexpected response does not say whether the card was charged,
+    // so the order stays pending with its stock reserved until the outcome is confirmed.
+    return { ok: false, reason: "payment_pending", orderId };
   }
 
-  await releaseOrder(db, orderId, code);
-  return { ok: false, reason: "payment_failed", orderId, code };
+  if (charge.status === "declined") {
+    await releaseOrder(db, orderId, charge.code);
+    return { ok: false, reason: "payment_failed", orderId, code: charge.code };
+  }
+  await db.transaction(async (tx) => {
+    await tx
+      .update(orders)
+      .set({ status: "paid", paymentChargeId: charge.chargeId })
+      .where(eq(orders.id, orderId));
+    await tx.delete(cartItems).where(eq(cartItems.cartId, input.cartId));
+  });
+  return { ok: true, orderId };
 }
 
 async function reserveOrder(

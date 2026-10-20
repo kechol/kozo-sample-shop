@@ -34,8 +34,6 @@ const checkoutSchema = z.object({
 const paymentMessages: Record<string, string> = {
   card_declined: "Your card was declined. Try another card.",
   invalid_number: "That card number cannot be charged. Try another card.",
-  provider_unavailable:
-    "The payment service is unavailable. Please try again shortly.",
 };
 
 export async function checkoutAction(
@@ -64,6 +62,9 @@ export async function checkoutAction(
   revalidatePath("/", "layout");
   if (result.ok) redirect(`/orders/${result.orderId}`);
   switch (result.reason) {
+    case "payment_pending":
+      redirect(`/orders/${result.orderId}`);
+      break;
     case "empty_cart":
       redirect("/cart");
       break;

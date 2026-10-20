@@ -40,6 +40,22 @@ test("buys a product with the success card", async ({ page }) => {
   await expect(page.getByTestId("stock")).toHaveText("12 in stock");
 });
 
+test("hides an order from a browser that did not place it", async ({
+  page,
+  browser,
+}) => {
+  await addToCart(page, "trekking-poles");
+  await fillCheckout(page, "4242 4242 4242 4242");
+  await page.getByRole("button", { name: "Place order" }).click();
+  await expect(page.getByTestId("order-status")).toHaveText("Paid");
+
+  const stranger = await browser.newPage();
+  const response = await stranger.goto(page.url());
+  expect(response?.status()).toBe(404);
+  await expect(stranger.getByText("1 Example Street")).toHaveCount(0);
+  await stranger.close();
+});
+
 test("shows a decline and keeps the cart", async ({ page }) => {
   await addToCart(page, "fountain-pen");
   await fillCheckout(page, "4000 0000 0000 0002");

@@ -3,13 +3,14 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 import { getDatabase } from "@/db/client";
 import type { OrderStatus } from "@/db/schema";
+import { readCartId } from "@/lib/cart-session";
 import { getOrder } from "@/lib/checkout";
 import { formatPrice } from "@/lib/money";
 
 export const metadata: Metadata = { title: "Order" };
 
 const statusLabels: Record<OrderStatus, string> = {
-  pending_payment: "Awaiting payment",
+  pending_payment: "Awaiting payment confirmation",
   paid: "Paid",
   payment_failed: "Payment failed",
 };
@@ -18,7 +19,9 @@ export default async function OrderPage({ params }: PageProps<"/orders/[id]">) {
   const { id } = await params;
   if (!z.uuid().safeParse(id).success) notFound();
   const order = await getOrder(getDatabase(), id);
-  if (!order) notFound();
+  // The page shows the shipping address, so only the browser whose cart placed the order may see it.
+  const cartId = await readCartId();
+  if (!order || !cartId || order.cartId !== cartId) notFound();
 
   return (
     <>

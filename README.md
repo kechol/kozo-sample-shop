@@ -37,8 +37,12 @@ test-only key in `.env.example` and decides the outcome by card number:
 | 4000 0000 0000 0077 | Succeeds after a delay (3 seconds by default) |
 
 Checkout reserves stock and creates the order in one transaction, then
-charges the card. A declined or failed charge marks the order
-`payment_failed`, returns the stock and keeps the cart.
+charges the card with the order id as the idempotency key. A declined charge
+marks the order `payment_failed`, returns the stock and keeps the cart. When
+the provider times out or answers unexpectedly, the outcome is unknown, so
+the order stays `pending_payment` with its stock reserved.
+
+An order page is shown only to the browser whose cart placed the order.
 
 ## Checks
 

@@ -101,20 +101,27 @@ describe("placeOrder", () => {
     expect(await countCartItems(db, cartId)).toBe(2);
   });
 
-  it("restores the stock when the payment provider is unreachable", async () => {
+  it("keeps the order pending and the stock reserved when the charge times out", async () => {
     const cartId = await cartWith("hand-grinder", 1);
-    const unreachable = createPaymentsClient({
-      baseUrl: "http://127.0.0.1:9",
-      secretKey: "fp_test_integration",
-      timeoutMs: 500,
+    // The provider still completes the delayed charge after the client gives up.
+    const impatient = createPaymentsClient({
+      baseUrl: payments.baseUrl,
+      secretKey: payments.secretKey,
+      timeoutMs: 10,
     });
-    const result = await placeOrder(db, unreachable, {
+    const result = await placeOrder(db, impatient, {
       cartId,
       shipping,
-      cardNumber: TEST_CARDS.success,
+      cardNumber: TEST_CARDS.delay,
     });
-    expect(result).toMatchObject({ ok: false, code: "provider_unavailable" });
-    expect((await product("hand-grinder")).stock).toBe(9);
+    expect(result).toMatchObject({ ok: false, reason: "payment_pending" });
+    if (result.ok || result.reason !== "payment_pending") return;
+
+    expect((await getOrder(db, result.orderId))?.status).toBe(
+      "pending_payment",
+    );
+    expect((await product("hand-grinder")).stock).toBe(9 - 1);
+    expect(await countCartItems(db, cartId)).toBe(1);
   });
 
   it("refuses an empty cart", async () => {

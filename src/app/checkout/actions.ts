@@ -74,7 +74,9 @@ export async function checkoutAction(
       };
     case "payment_failed":
       return {
-        error: paymentMessages[result.code] ?? paymentMessages.card_declined,
+        error:
+          paymentMessages[result.code] ??
+          "The payment could not be processed. Please try again later.",
       };
   }
 }

@@ -122,6 +122,38 @@ describe("placeOrder", () => {
     );
     expect((await product("hand-grinder")).stock).toBe(9 - 1);
     expect(await countCartItems(db, cartId)).toBe(1);
+
+    // Retrying from the same cart returns the pending order instead of charging again.
+    const retry = await placeOrder(db, payments.client, {
+      cartId,
+      shipping,
+      cardNumber: TEST_CARDS.success,
+    });
+    expect(retry).toEqual({
+      ok: false,
+      reason: "payment_pending",
+      orderId: result.orderId,
+    });
+    expect((await product("hand-grinder")).stock).toBe(9 - 1);
+  });
+
+  it("releases the stock when the provider refuses the request", async () => {
+    const cartId = await cartWith("hand-grinder", 1);
+    const misconfigured = createPaymentsClient({
+      baseUrl: payments.baseUrl,
+      secretKey: "fp_test_wrong",
+    });
+    const result = await placeOrder(db, misconfigured, {
+      cartId,
+      shipping,
+      cardNumber: TEST_CARDS.success,
+    });
+    expect(result).toMatchObject({
+      ok: false,
+      reason: "payment_failed",
+      code: "unauthorized",
+    });
+    expect((await product("hand-grinder")).stock).toBe(9);
   });
 
   it("refuses an empty cart", async () => {

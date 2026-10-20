@@ -6,7 +6,7 @@ export type ChargeRequest = {
 
 export type ChargeResult =
   | { status: "succeeded"; chargeId: string }
-  | { status: "declined"; code: string };
+  | { status: "not_charged"; code: string };
 
 export interface PaymentsClient {
   charge(request: ChargeRequest): Promise<ChargeResult>;
@@ -55,10 +55,12 @@ export function createPaymentsClient({
       if (response.ok && typeof body?.id === "string") {
         return { status: "succeeded", chargeId: body.id };
       }
-      if (response.status === 402) {
+      // A 4xx means the provider refused the request, so no charge was made.
+      // Anything else (5xx, a 2xx without an id) leaves the outcome unknown.
+      if (response.status >= 400 && response.status < 500) {
         return {
-          status: "declined",
-          code: body?.error?.code ?? "card_declined",
+          status: "not_charged",
+          code: body?.error?.code ?? `http_${response.status}`,
         };
       }
       throw new PaymentsError(

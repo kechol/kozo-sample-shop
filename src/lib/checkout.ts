@@ -1,6 +1,6 @@
-import { asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import type { Database } from "@/db/client";
-import { cartItems, orderItems, orders, products } from "@/db/schema";
+import { cartItems, carts, orderItems, orders, products } from "@/db/schema";
 import {
   type ChargeResult,
   type PaymentsClient,
@@ -46,7 +46,7 @@ export async function placeOrder(
     return { ok: false, reason: "payment_pending", orderId };
   }
 
-  if (charge.status === "declined") {
+  if (charge.status === "not_charged") {
     await releaseOrder(db, orderId, charge.code);
     return { ok: false, reason: "payment_failed", orderId, code: charge.code };
   }
@@ -66,6 +66,27 @@ async function reserveOrder(
   shipping: ShippingDetails,
 ) {
   return db.transaction(async (tx) => {
+    // Locking the cart serializes checkouts from it, so a retry cannot slip past the pending check.
+    await tx
+      .select({ id: carts.id })
+      .from(carts)
+      .where(eq(carts.id, cartId))
+      .for("update");
+    // A pending order may still be charged, so a new one would risk charging twice.
+    const [pending] = await tx
+      .select({ id: orders.id })
+      .from(orders)
+      .where(
+        and(eq(orders.cartId, cartId), eq(orders.status, "pending_payment")),
+      );
+    if (pending) {
+      return {
+        ok: false as const,
+        reason: "payment_pending" as const,
+        orderId: pending.id,
+      };
+    }
+
     const lines = await tx
       .select({ productId: cartItems.productId, quantity: cartItems.quantity })
       .from(cartItems)

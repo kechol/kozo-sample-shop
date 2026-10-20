@@ -1,0 +1,23 @@
+# Gates for kozo. Each gate is defined once; a level lists the gates it runs, in order.
+version: 1
+prepare:
+  - pnpm install --frozen-lockfile
+  - pnpm db:up
+gates:
+  typecheck:
+    run: pnpm typecheck
+  lint:
+    run: pnpm lint
+  unit:
+    run: pnpm test:unit
+  integration:
+    run: pnpm test:integration
+  build:
+    run: pnpm build
+  # Serves the output of the build gate, so it runs after build.
+  e2e:
+    run: pnpm test:e2e
+levels:
+  fast: [typecheck, lint, unit]
+  full: [typecheck, lint, unit, integration, build]
+  deep: [typecheck, lint, unit, integration, build, e2e]

@@ -2,26 +2,22 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { getDatabase } from "@/db/client";
-import type { OrderStatus } from "@/db/schema";
+import { getSessionUser } from "@/lib/auth";
 import { readCartId } from "@/lib/cart-session";
-import { getOrder } from "@/lib/checkout";
+import { canViewOrder, getOrder } from "@/lib/checkout";
 import { formatPrice } from "@/lib/money";
+import { orderStatusLabels } from "@/lib/order-status";
 
 export const metadata: Metadata = { title: "Order" };
-
-const statusLabels: Record<OrderStatus, string> = {
-  pending_payment: "Awaiting payment confirmation",
-  paid: "Paid",
-  payment_failed: "Payment failed",
-};
 
 export default async function OrderPage({ params }: PageProps<"/orders/[id]">) {
   const { id } = await params;
   if (!z.uuid().safeParse(id).success) notFound();
   const order = await getOrder(getDatabase(), id);
-  // The page shows the shipping address, so only the browser whose cart placed the order may see it.
-  const cartId = await readCartId();
-  if (!order || !cartId || order.cartId !== cartId) notFound();
+  const [cartId, user] = await Promise.all([readCartId(), getSessionUser()]);
+  if (!order || !canViewOrder(order, { cartId, userId: user?.id ?? null })) {
+    notFound();
+  }
 
   return (
     <>
@@ -30,7 +26,9 @@ export default async function OrderPage({ params }: PageProps<"/orders/[id]">) {
       </h1>
       <p className="mt-2 text-stone-600">
         Status:{" "}
-        <span data-testid="order-status">{statusLabels[order.status]}</span>
+        <span data-testid="order-status">
+          {orderStatusLabels[order.status]}
+        </span>
       </p>
       <ul className="mt-6 divide-y divide-stone-200 rounded-lg border border-stone-200 bg-white">
         {order.items.map((item) => (

@@ -7,8 +7,8 @@ and replayed. The store, its products and its customers do not exist.
 
 ## Stack
 
-Next.js (App Router), TypeScript, Drizzle ORM, PostgreSQL, Tailwind CSS,
-Vitest and Playwright.
+Next.js (App Router), TypeScript, Drizzle ORM, PostgreSQL, better-auth,
+Tailwind CSS, Vitest and Playwright.
 
 ## Getting started
 
@@ -23,6 +23,20 @@ pnpm db:seed
 pnpm payments:dev   # fake payment provider on 127.0.0.1:4010
 pnpm dev            # http://localhost:3000, in another terminal
 ```
+
+## Accounts
+
+Buyers can check out as guests or create an account with an email and password
+(better-auth). Orders placed while signed in appear under **Your orders**. An
+order page is shown only to its signed-in buyer or to the browser whose cart
+placed it.
+
+`pnpm db:seed` creates two test-only accounts:
+
+| Account | Email | Password |
+| --- | --- | --- |
+| Buyer | `buyer@example.com` | `buyer-password-123` |
+| Admin | `admin@example.com` | `admin-password-123` |
 
 ## Payments
 
@@ -43,8 +57,6 @@ refuses the request (any 4xx, such as a declined card), the order becomes
 answers with anything else, the outcome is unknown, so the order stays
 `pending_payment` with its stock reserved, and the cart cannot check out again
 until that order is settled.
-
-An order page is shown only to the browser whose cart placed the order.
 
 ## Checks
 

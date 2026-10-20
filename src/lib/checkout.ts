@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import { cartItems, carts, orderItems, orders, products } from "@/db/schema";
 import {
@@ -26,9 +26,19 @@ export type PlaceOrderResult =
 export async function placeOrder(
   db: Database,
   payments: PaymentsClient,
-  input: { cartId: string; shipping: ShippingDetails; cardNumber: string },
+  input: {
+    cartId: string;
+    userId?: string | null;
+    shipping: ShippingDetails;
+    cardNumber: string;
+  },
 ): Promise<PlaceOrderResult> {
-  const reserved = await reserveOrder(db, input.cartId, input.shipping);
+  const reserved = await reserveOrder(
+    db,
+    input.cartId,
+    input.userId ?? null,
+    input.shipping,
+  );
   if (!reserved.ok) return reserved;
   const { orderId, totalCents } = reserved;
 
@@ -63,6 +73,7 @@ export async function placeOrder(
 async function reserveOrder(
   db: Database,
   cartId: string,
+  userId: string | null,
   shipping: ShippingDetails,
 ) {
   return db.transaction(async (tx) => {
@@ -152,6 +163,7 @@ async function reserveOrder(
       .insert(orders)
       .values({
         cartId,
+        userId,
         email: shipping.email,
         shippingName: shipping.name,
         shippingAddress: shipping.address,
@@ -198,4 +210,24 @@ export async function getOrder(db: Database, orderId: string) {
     with: { items: { orderBy: asc(orderItems.id) } },
   });
   return order ?? null;
+}
+
+export type OrderViewer = { cartId: string | null; userId: string | null };
+
+// The order page shows the shipping address, so only its buyer may see it: the signed-in
+// owner, or the browser whose cart placed it.
+export function canViewOrder(
+  order: { cartId: string | null; userId: string | null },
+  viewer: OrderViewer,
+): boolean {
+  if (order.userId !== null && order.userId === viewer.userId) return true;
+  return order.cartId !== null && order.cartId === viewer.cartId;
+}
+
+export async function listOrdersForUser(db: Database, userId: string) {
+  return db.query.orders.findMany({
+    where: eq(orders.userId, userId),
+    orderBy: desc(orders.createdAt),
+    with: { items: { orderBy: asc(orderItems.id) } },
+  });
 }

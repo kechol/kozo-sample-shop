@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getDatabase } from "@/db/client";
+import { getSessionUser } from "@/lib/auth";
 import { isValidCardNumber, normalizeCardNumber } from "@/lib/card";
 import { readCartId } from "@/lib/cart-session";
 import { placeOrder } from "@/lib/checkout";
@@ -54,8 +55,10 @@ export async function checkoutAction(
   }
   const { cardNumber, ...shipping } = parsed.data;
 
+  const user = await getSessionUser();
   const result = await placeOrder(getDatabase(), getPaymentsClient(), {
     cartId,
+    userId: user?.id ?? null,
     shipping,
     cardNumber,
   });

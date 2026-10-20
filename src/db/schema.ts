@@ -1,5 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   index,
   integer,
@@ -11,6 +12,86 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
+
+// Tables for better-auth. Column names follow its core schema; the keys passed to its
+// Drizzle adapter map its models (user, session, account, verification) onto them.
+export const users = pgTable("users", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  emailVerified: boolean("email_verified").notNull().default(false),
+  image: text("image"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: text("id").primaryKey(),
+    token: text("token").notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("sessions_user_id_idx").on(table.userId)],
+);
+
+export const accounts = pgTable(
+  "accounts",
+  {
+    id: text("id").primaryKey(),
+    accountId: text("account_id").notNull(),
+    providerId: text("provider_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    idToken: text("id_token"),
+    accessTokenExpiresAt: timestamp("access_token_expires_at", {
+      withTimezone: true,
+    }),
+    refreshTokenExpiresAt: timestamp("refresh_token_expires_at", {
+      withTimezone: true,
+    }),
+    scope: text("scope"),
+    password: text("password"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("accounts_user_id_idx").on(table.userId)],
+);
+
+export const verifications = pgTable("verifications", {
+  id: text("id").primaryKey(),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
 
 export const categories = pgTable("categories", {
   id: serial("id").primaryKey(),
@@ -81,6 +162,9 @@ export const orders = pgTable(
     cartId: uuid("cart_id").references(() => carts.id, {
       onDelete: "set null",
     }),
+    userId: text("user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
     status: orderStatus("status").notNull().default("pending_payment"),
     email: text("email").notNull(),
     shippingName: text("shipping_name").notNull(),
@@ -96,6 +180,7 @@ export const orders = pgTable(
       .defaultNow(),
   },
   (table) => [
+    index("orders_user_id_idx").on(table.userId),
     check("orders_total_cents_positive", sql`${table.totalCents} > 0`),
   ],
 );

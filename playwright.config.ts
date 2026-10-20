@@ -38,6 +38,8 @@ export default defineConfig({
         DATABASE_URL: TEST_DATABASE_URL,
         PAYMENTS_URL: `http://127.0.0.1:${paymentsPort}`,
         PAYMENTS_SECRET_KEY: paymentsSecretKey,
+        BETTER_AUTH_SECRET: "e2e-only-better-auth-secret-000000000000",
+        BETTER_AUTH_URL: `http://127.0.0.1:${port}`,
       },
     },
   ],

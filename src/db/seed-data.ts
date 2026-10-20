@@ -262,3 +262,18 @@ export const seedProducts: {
     category: "home",
   },
 ];
+
+// Test-only accounts for local development, tests and kozo's verify-app. Never reuse these
+// passwords anywhere real.
+export const seedAccounts = [
+  {
+    name: "Sample Buyer",
+    email: "buyer@example.com",
+    password: "buyer-password-123",
+  },
+  {
+    name: "Sample Admin",
+    email: "admin@example.com",
+    password: "admin-password-123",
+  },
+] as const;

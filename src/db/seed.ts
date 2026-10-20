@@ -1,10 +1,40 @@
+import { randomUUID } from "node:crypto";
+import { hashPassword } from "better-auth/crypto";
 import { sql } from "drizzle-orm";
 import { createDatabase, type Database } from "./client";
-import { categories, products } from "./schema";
-import { seedCategories, seedProducts } from "./seed-data";
+import { accounts, categories, products, users } from "./schema";
+import { seedAccounts, seedCategories, seedProducts } from "./seed-data";
+
+// Hashing is deliberately slow, and tests reseed before every case, so hash once per process.
+let passwordHashes: Promise<string[]> | undefined;
+function hashSeedPasswords() {
+  passwordHashes ??= Promise.all(
+    seedAccounts.map((account) => hashPassword(account.password)),
+  );
+  return passwordHashes;
+}
 
 export async function seed(db: Database) {
+  const hashes = await hashSeedPasswords();
   await db.transaction(async (tx) => {
+    for (const [index, account] of seedAccounts.entries()) {
+      const userId = randomUUID();
+      await tx.insert(users).values({
+        id: userId,
+        name: account.name,
+        email: account.email,
+        emailVerified: true,
+      });
+      // better-auth stores email and password sign-in as a "credential" account.
+      await tx.insert(accounts).values({
+        id: randomUUID(),
+        accountId: userId,
+        providerId: "credential",
+        userId,
+        password: hashes[index],
+      });
+    }
+
     const inserted = await tx
       .insert(categories)
       .values([...seedCategories])
@@ -23,7 +53,7 @@ export async function seed(db: Database) {
 
 export async function truncate(db: Database) {
   await db.execute(
-    sql`TRUNCATE order_items, orders, cart_items, carts, products, categories RESTART IDENTITY CASCADE`,
+    sql`TRUNCATE order_items, orders, cart_items, carts, products, categories, verifications, accounts, sessions, users RESTART IDENTITY CASCADE`,
   );
 }
 

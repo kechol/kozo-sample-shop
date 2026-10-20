@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { signOutAction } from "@/app/account/actions";
 import { SearchForm } from "@/components/search-form";
 import { getDatabase } from "@/db/client";
+import { getSessionUser } from "@/lib/auth";
 import { countCartItems } from "@/lib/cart";
 import { readCartId } from "@/lib/cart-session";
 import { listCategories } from "@/lib/catalog";
@@ -23,9 +25,10 @@ export default async function RootLayout({
 }) {
   const db = getDatabase();
   const cartId = await readCartId();
-  const [categories, cartCount] = await Promise.all([
+  const [categories, cartCount, user] = await Promise.all([
     listCategories(db),
     cartId ? countCartItems(db, cartId) : 0,
+    getSessionUser(),
   ]);
   return (
     <html lang="en">
@@ -57,6 +60,25 @@ export default async function RootLayout({
               >
                 Cart (<span data-testid="cart-count">{cartCount}</span>)
               </Link>
+              {user ? (
+                <>
+                  <Link
+                    href="/account/orders"
+                    className="text-sm hover:text-brand"
+                  >
+                    Your orders
+                  </Link>
+                  <form action={signOutAction}>
+                    <button type="submit" className="text-sm text-stone-600">
+                      Sign out
+                    </button>
+                  </form>
+                </>
+              ) : (
+                <Link href="/sign-in" className="text-sm hover:text-brand">
+                  Sign in
+                </Link>
+              )}
             </div>
           </div>
         </header>

@@ -146,8 +146,16 @@ export default async function AdminOrdersPage({
                     .join(", ")}
                 </p>
               </div>
-              <div className="w-48" data-testid="admin-order-status">
-                {orderStatusLabels[order.status]}
+              <div className="w-48">
+                <p data-testid="admin-order-status">
+                  {orderStatusLabels[order.status]}
+                </p>
+                {order.status === "cancelled" && order.paymentChargeId && (
+                  <p className="text-red-700">
+                    Charged after cancelling; refund {order.paymentChargeId}{" "}
+                    with the provider
+                  </p>
+                )}
               </div>
               <div className="w-24 text-right font-medium">
                 {formatPrice(order.totalCents)}

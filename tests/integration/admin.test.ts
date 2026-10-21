@@ -194,7 +194,10 @@ describe("cancelOrder", () => {
       reason: "order_cancelled",
       orderId,
     });
-    expect((await getOrder(db, orderId))?.status).toBe("cancelled");
+    expect(await getOrder(db, orderId)).toMatchObject({
+      status: "cancelled",
+      paymentChargeId: "ch_late",
+    });
     expect(await stockOf("hand-grinder")).toBe(9);
     expect(await countCartItems(db, cartId)).toBe(2);
   });

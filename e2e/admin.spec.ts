@@ -90,16 +90,18 @@ test("creates and edits a product, then ships its order", async ({ page }) => {
   await page.getByLabel("Name").fill("Brass Desk Lamp");
   await page.getByLabel("Slug").fill(slug);
   await page.getByLabel("Price (USD)").fill("12.345");
-  await page.getByLabel("Stock").fill("3");
+  await page.getByLabel("Stock").fill("");
   await page.getByLabel("Category").selectOption({ label: "Home" });
   await page.getByLabel("Description").fill("A small lamp for a desk.");
   await page.getByRole("button", { name: "Create product" }).click();
 
   // A rejected form keeps what was typed.
   await expect(page.getByText("Enter a price such as 12.50")).toBeVisible();
+  await expect(page.getByText("Enter a whole number")).toBeVisible();
   await expect(page.getByLabel("Name")).toHaveValue("Brass Desk Lamp");
   await expect(page.getByLabel("Category")).not.toHaveValue("");
   await page.getByLabel("Price (USD)").fill("45");
+  await page.getByLabel("Stock").fill("3");
   await page.getByRole("button", { name: "Create product" }).click();
   await expect(page).toHaveURL(/\/admin\/products$/);
 
@@ -152,5 +154,31 @@ test("refuses an admin action posted by a buyer", async ({ page, browser }) => {
   expect(shipped.status()).toBe(303);
   await page.reload();
   await expect(page.getByTestId("order-status")).toHaveText("Shipped");
+  await expect(
+    page.getByRole("heading", { name: "Thank you for your order" }),
+  ).toBeVisible();
   await admin.close();
+});
+
+test("creates a product without JavaScript", async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+  const slug = uniqueSlug("no-js");
+  await page.goto("/sign-in");
+  await page.getByLabel("Email").fill("admin@example.com");
+  await page.getByLabel("Password").fill("admin-password-123");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/\/account\/orders$/);
+
+  await page.goto("/admin/products/new");
+  await page.getByLabel("Name").fill("Paper Lantern");
+  await page.getByLabel("Slug").fill(slug);
+  await page.getByLabel("Price (USD)").fill("18");
+  await page.getByLabel("Stock").fill("4");
+  await page.getByLabel("Category").selectOption({ label: "Home" });
+  await page.getByLabel("Description").fill("A folding lantern.");
+  await page.getByRole("button", { name: "Create product" }).click();
+  await expect(page).toHaveURL(/\/admin\/products$/);
+  await expect(page.getByText("Paper Lantern").first()).toBeVisible();
+  await context.close();
 });

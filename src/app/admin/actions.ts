@@ -20,10 +20,12 @@ export type ProductFormState = {
   fieldErrors?: Partial<Record<string, string>>;
 };
 
-const wholeNumber = z.coerce
-  .number<string>()
-  .int("Enter a whole number")
-  .min(0, "Stock cannot be negative");
+// A string check rather than z.coerce, which reads a blank or missing field as 0.
+const wholeNumber = z
+  .string("Enter a whole number")
+  .trim()
+  .regex(/^\d{1,6}$/, "Enter a whole number")
+  .transform(Number);
 
 const productSchema = z
   .object({
@@ -48,7 +50,7 @@ const productSchema = z
       }
       return cents;
     }),
-    stock: wholeNumber.max(100_000),
+    stock: wholeNumber.pipe(z.number().max(100_000, "Enter at most 100000")),
     categoryId: z.coerce.number<string>().int().positive("Choose a category"),
   })
   .transform(({ price, ...rest }) => ({ ...rest, priceCents: price }));
@@ -133,7 +135,7 @@ async function runOrderAction(
   });
   if (!parsed.success) redirect("/admin/orders?notice=not_found");
   const result = await run(getDatabase(), parsed.data.orderId);
-  revalidatePath("/", "layout");
+  if (result.ok) revalidatePath("/", "layout");
   const search = new URLSearchParams({
     notice: result.ok ? done : result.reason,
   });

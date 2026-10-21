@@ -53,8 +53,10 @@ export function ProductForm({
 
   return (
     <form
-      // Submitting through onSubmit rather than the action prop skips React's form reset,
-      // so a rejected submission keeps what the admin typed.
+      // The action prop serves submissions before hydration or without JavaScript. Once
+      // hydrated, onSubmit calls the action itself, which skips React's form reset, so a
+      // rejected submission keeps what the admin typed.
+      action={formAction}
       onSubmit={(event) => {
         event.preventDefault();
         const formData = new FormData(event.currentTarget);

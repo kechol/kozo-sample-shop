@@ -62,7 +62,8 @@ refuses the request (any 4xx, such as a declined card), the order becomes
 answers with anything else, the outcome is unknown, so the order stays
 `pending_payment` with its stock reserved, and the cart cannot check out again
 until an admin cancels that order. A cancelled order stays cancelled even if
-its charge completes later; refunds are not part of the shop.
+its charge completes later; the admin order list then shows the charge to
+refund with the provider, since refunds are not part of the shop.
 
 ## Checks
 

@@ -75,6 +75,12 @@ export async function placeOrder(
     );
     if (result.ok) {
       await tx.delete(cartItems).where(eq(cartItems.cartId, input.cartId));
+    } else {
+      // Keep the charge on the cancelled order so an admin can see it needs a refund.
+      await tx
+        .update(orders)
+        .set({ paymentChargeId: charge.chargeId })
+        .where(eq(orders.id, orderId));
     }
     return result.ok;
   });

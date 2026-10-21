@@ -22,7 +22,9 @@ export default async function OrderPage({ params }: PageProps<"/orders/[id]">) {
   return (
     <>
       <h1 className="text-2xl font-semibold">
-        {order.status === "paid" ? "Thank you for your order" : "Order"}
+        {order.status === "paid" || order.status === "shipped"
+          ? "Thank you for your order"
+          : "Order"}
       </h1>
       <p className="mt-2 text-stone-600">
         Status:{" "}

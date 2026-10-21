@@ -10,14 +10,17 @@ one verification at a time per machine. The tests use the separate
 
 ## Start
 
+The commands assume the `prepare` commands in
+[`constraints.yml`](constraints.yml) have run: dependencies are installed and
+PostgreSQL listens on `localhost:5433`. They need no network beyond this
+machine and no Docker access, so they also run inside kozo's sandbox.
+
 Serve the production build, as the e2e gate does, so the result matches what
 the gates checked.
 
 ```sh
 mkdir -p .output/verify
 test -f .env || cp .env.example .env
-pnpm install --frozen-lockfile
-pnpm db:up
 pnpm db:migrate
 pnpm db:seed
 pnpm build > .output/verify/build.log 2>&1
@@ -83,11 +86,16 @@ Pages:
 | `/sign-in`, `/sign-up`, `/account/orders` | Accounts and order history |
 | `/admin/orders`, `/admin/products` | The admin, to the admin account only; others get 404 |
 
-To read state the pages do not show, query the database:
+To read state the pages do not show, query the database through the app's own
+driver:
 
 ```sh
-docker compose exec -T postgres psql -U shop -d shop \
-  -c "select id, status, total_cents from orders order by created_at desc limit 5"
+node --env-file=.env --input-type=module -e '
+import postgres from "postgres";
+const sql = postgres(process.env.DATABASE_URL);
+console.table(await sql`select id, status, total_cents from orders order by created_at desc limit 5`);
+await sql.end();
+'
 ```
 
 ## Evidence
@@ -102,7 +110,7 @@ Save everything under `.output/verify/`, which git ignores:
 ## Clean up
 
 Stop both servers, then reseed so the next run starts from the same data.
-Leave PostgreSQL running; `pnpm db:down` stops it when nothing else needs it.
+Leave PostgreSQL running.
 
 ```sh
 kill "$(cat .output/verify/app.pid)" "$(cat .output/verify/payments.pid)"

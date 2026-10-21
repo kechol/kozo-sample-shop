@@ -1,0 +1,127 @@
+diff --git a/src/app/categories/[slug]/page.tsx b/src/app/categories/[slug]/page.tsx
+index cd3b079..7f1ef50 100644
+--- a/src/app/categories/[slug]/page.tsx
++++ b/src/app/categories/[slug]/page.tsx
+@@ -1,10 +1,26 @@
+ import type { Metadata } from "next";
++import Link from "next/link";
+ import { notFound } from "next/navigation";
+ import { Pagination } from "@/components/pagination";
+ import { ProductGrid } from "@/components/product-grid";
+ import { getDatabase } from "@/db/client";
+-import { getCategory, listProducts } from "@/lib/catalog";
+-import { pageParam } from "@/lib/search-params";
++import {
++  getCategory,
++  listProducts,
++  PRODUCT_SORTS,
++  type ProductSort,
++} from "@/lib/catalog";
++import { firstParam, pageParam } from "@/lib/search-params";
++
++const sortLabels: Record<ProductSort, string> = {
++  name: "Name",
++  "price-asc": "Price: low to high",
++  "price-desc": "Price: high to low",
++};
++
++function parseSort(value: string | undefined): ProductSort {
++  return PRODUCT_SORTS.find((sort) => sort === value) ?? "name";
++}
+ 
+ export async function generateMetadata({
+   params,
+@@ -19,23 +35,40 @@ export default async function CategoryPage({
+   searchParams,
+ }: PageProps<"/categories/[slug]">) {
+   const { slug } = await params;
+-  const { page } = await searchParams;
++  const { page, sort: sortParam } = await searchParams;
++  const sort = parseSort(firstParam(sortParam));
+   const db = getDatabase();
+   const category = await getCategory(db, slug);
+   if (!category) notFound();
+   const result = await listProducts(db, {
+     categorySlug: category.slug,
+     page: pageParam(page),
++    sort,
+   });
++  const basePath = `/categories/${category.slug}`;
+   return (
+     <>
+       <h1 className="text-2xl font-semibold">{category.name}</h1>
+       <p className="mb-6 text-stone-600">{category.description}</p>
++      <nav aria-label="Sort" className="mb-4 flex gap-3 text-sm">
++        <span className="text-stone-600">Sort by</span>
++        {PRODUCT_SORTS.map((option) => (
++          <Link
++            key={option}
++            href={option === "name" ? basePath : `${basePath}?sort=${option}`}
++            aria-current={option === sort ? "true" : undefined}
++            className={option === sort ? "font-semibold" : "text-brand"}
++          >
++            {sortLabels[option]}
++          </Link>
++        ))}
++      </nav>
+       <ProductGrid products={result.items} />
+       <Pagination
+         page={result.page}
+         pageCount={result.pageCount}
+-        basePath={`/categories/${category.slug}`}
++        basePath={basePath}
++        params={sort === "name" ? {} : { sort }}
+       />
+     </>
+   );
+diff --git a/src/lib/catalog.ts b/src/lib/catalog.ts
+index 3b50fce..f4f3dd8 100644
+--- a/src/lib/catalog.ts
++++ b/src/lib/catalog.ts
+@@ -1,14 +1,18 @@
+-import { and, asc, count, eq, ilike, or, type SQL } from "drizzle-orm";
++import { and, asc, count, desc, eq, ilike, or, type SQL } from "drizzle-orm";
+ import type { Database } from "@/db/client";
+ import { categories, products } from "@/db/schema";
+ import { pageWindow } from "@/lib/pagination";
+ 
+ export const PAGE_SIZE = 12;
+ 
++export const PRODUCT_SORTS = ["name", "price-asc", "price-desc"] as const;
++export type ProductSort = (typeof PRODUCT_SORTS)[number];
++
+ export type ProductQuery = {
+   categorySlug?: string;
+   search?: string;
+   page?: number;
++  sort?: ProductSort;
+ };
+ 
+ export type ProductSummary = {
+@@ -68,7 +72,7 @@ export async function listProducts(
+     .from(products)
+     .innerJoin(categories, eq(products.categoryId, categories.id))
+     .where(where)
+-    .orderBy(asc(products.name), asc(products.id))
++    .orderBy(...orderFor(query.sort ?? "name"))
+     .limit(PAGE_SIZE)
+     .offset(offset);
+ 
+@@ -80,6 +84,17 @@ export async function listProducts(
+   };
+ }
+ 
++function orderFor(sort: ProductSort) {
++  switch (sort) {
++    case "price-asc":
++      return [asc(products.priceCents), asc(products.name), asc(products.id)];
++    case "price-desc":
++      return [desc(products.priceCents), asc(products.name), asc(products.id)];
++    case "name":
++      return [asc(products.name), asc(products.id)];
++  }
++}
++
+ export async function getProduct(db: Database, slug: string) {
+   const row = await db.query.products.findFirst({
+     where: eq(products.slug, slug),

@@ -1,0 +1,23 @@
+# Eval case, format version 1 (D-046). Replayed from a resolved upstream issue on a local
+# clone; the issue text and the fix stay upstream and are referenced, never copied.
+version: 1
+id: hono-5129
+repository: honojs/hono
+# The parent of the human fix, tagged eval/hono-5129 in the local clone.
+start: 21b44b6db6118fc77fabb49832fc4cadd0ef8ec8
+request:
+  issue: https://github.com/honojs/hono/issues/5129
+  title: "parseBody() fails with \"Failed to parse body as FormData\" when formData() was read first (regression in 4.12.28)"
+  # SHA-256 of the issue body when the case was made, to notice later edits.
+  bodySha256: e9ae26919be38b93c33dd5c3924e3157d28c53d91652356debeb3c8036e142e0
+expected:
+  outcome: complete
+  prepare: "bun install --frozen-lockfile"
+  # Apply the hidden tests on top of the result, then run the checks; all must pass.
+  hidden:
+    commit: 80959d47d56ac18c2985336ad311917dc56497c5
+    paths:
+      - src/request.test.ts
+  checks:
+    - "bunx vitest --run --coverage.enabled=false src/request.test.ts"
+  reference: 80959d47d56ac18c2985336ad311917dc56497c5

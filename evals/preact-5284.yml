@@ -1,0 +1,23 @@
+# Eval case, format version 1 (D-046). Replayed from a resolved upstream issue on a local
+# clone; the issue text and the fix stay upstream and are referenced, never copied.
+version: 1
+id: preact-5284
+repository: preactjs/preact
+# The parent of the human fix, tagged eval/preact-5284 in the local clone.
+start: 1485848b1b1199f1650ba85505b079765821652b
+request:
+  issue: https://github.com/preactjs/preact/issues/5284
+  title: "Error thrown in componentDidCatch is dropped when the boundary also has getDerivedStateFromError"
+  # SHA-256 of the issue body when the case was made, to notice later edits.
+  bodySha256: 451809b57dc83196ef25b156e647061e7d0ba58b8da06158447b2de214bd84a3
+expected:
+  outcome: complete
+  prepare: "npx -y pnpm@11.3.0 install --frozen-lockfile"
+  # Apply the hidden tests on top of the result, then run the checks; all must pass.
+  hidden:
+    commit: db5d280b24635e9cec9afc3e340153a4c5b09efa
+    paths:
+      - test/browser/lifecycles/componentDidCatch.test.jsx
+  checks:
+    - "npx vitest run test/browser/lifecycles/componentDidCatch.test.jsx"
+  reference: db5d280b24635e9cec9afc3e340153a4c5b09efa

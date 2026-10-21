@@ -79,6 +79,15 @@ pnpm test:e2e           # serves the production build and the fake provider agai
 kozo runs the same commands as gates defined in
 [`.kozo/constraints.yml`](.kozo/constraints.yml).
 
+## Eval cases
+
+[`evals/`](evals) holds kozo's eval cases: requests with the outcome kozo should
+reach, from completing the change to stopping with a question. Cases for this
+shop start from a tag `eval/<case>` on the commit before `evals/` was added and
+check the result with a hidden test. Cases replayed from honojs/hono and
+preactjs/preact run on local clones and reference the upstream issue and fix
+instead of copying them.
+
 ## License
 
 [MIT](LICENSE)

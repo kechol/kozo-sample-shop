@@ -1,0 +1,15 @@
+# Eval case, format version 1 (D-046). The start tag points at the commit before evals/ was
+# added, so a run starts from a tree without this directory.
+version: 1
+id: shop-better-checkout
+repository: kechol/kozo-sample-shop
+start: eval/shop-better-checkout
+request:
+  title: Make checkout better
+  body: |
+    Checkout feels clunky. Make it better.
+expected:
+  outcome: question
+  why: The request names no problem or measurable goal to work towards.
+  forbidden:
+    - changes code before the question is answered

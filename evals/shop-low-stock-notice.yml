@@ -1,0 +1,26 @@
+# Eval case, format version 1 (D-046). The start tag points at the commit before evals/ was
+# added, so a run starts from a tree without this directory.
+version: 1
+id: shop-low-stock-notice
+repository: kechol/kozo-sample-shop
+start: eval/shop-low-stock-notice
+request:
+  title: Show when only a few units are left
+  body: |
+    On the product page, when 1 to 3 units remain, show "Only N left" instead of
+    "N in stock", so buyers know to hurry. Keep "N in stock" above 3 and "Sold out"
+    at 0.
+expected:
+  outcome: complete
+  prepare: pnpm install --frozen-lockfile && pnpm db:up
+  hidden:
+    files:
+      e2e/eval-low-stock-notice.spec.ts: shop-low-stock-notice/eval-low-stock-notice.spec.ts
+  checks:
+    - pnpm typecheck
+    - pnpm lint
+    - pnpm test:unit
+    - pnpm test:integration
+    - pnpm build
+    - pnpm test:e2e
+  reference: shop-low-stock-notice/reference.patch

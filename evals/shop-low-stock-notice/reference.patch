@@ -1,0 +1,17 @@
+diff --git a/src/app/products/[slug]/page.tsx b/src/app/products/[slug]/page.tsx
+index f167c63..6be11eb 100644
+--- a/src/app/products/[slug]/page.tsx
++++ b/src/app/products/[slug]/page.tsx
+@@ -39,7 +39,11 @@ export default async function ProductPage({
+         <p className="mt-2 text-xl">{formatPrice(product.priceCents)}</p>
+         <p className="mt-4 text-stone-700">{product.description}</p>
+         <p className="mt-4 text-sm" data-testid="stock">
+-          {product.stock > 0 ? `${product.stock} in stock` : "Sold out"}
++          {product.stock === 0
++            ? "Sold out"
++            : product.stock <= 3
++              ? `Only ${product.stock} left`
++              : `${product.stock} in stock`}
+         </p>
+         {product.stock > 0 && (
+           <AddToCartForm productId={product.id} stock={product.stock} />

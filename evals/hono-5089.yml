@@ -1,0 +1,23 @@
+# Eval case, format version 1 (D-046). Replayed from a resolved upstream issue on a local
+# clone; the issue text and the fix stay upstream and are referenced, never copied.
+version: 1
+id: hono-5089
+repository: honojs/hono
+# The parent of the human fix, tagged eval/hono-5089 in the local clone.
+start: 626b185d0e80fa1c2a3cc1a8945afd0df6aaf3ec
+request:
+  issue: https://github.com/honojs/hono/issues/5089
+  title: "RPC headers not merging when function"
+  # SHA-256 of the issue body when the case was made, to notice later edits.
+  bodySha256: df338318b5e81b360b5d06f6c12668e49d6cbae12970151399401218bf0a9209
+expected:
+  outcome: complete
+  prepare: "bun install --frozen-lockfile"
+  # Apply the hidden tests on top of the result, then run the checks; all must pass.
+  hidden:
+    commit: f9992096de71151b8271f1cd7f45986bdd5f2b7f
+    paths:
+      - src/client/client.test.ts
+  checks:
+    - "bunx vitest --run --coverage.enabled=false src/client/client.test.ts"
+  reference: f9992096de71151b8271f1cd7f45986bdd5f2b7f

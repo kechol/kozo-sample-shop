@@ -1,0 +1,23 @@
+# Eval case, format version 1 (D-046). Replayed from a resolved upstream issue on a local
+# clone; the issue text and the fix stay upstream and are referenced, never copied.
+version: 1
+id: hono-5083
+repository: honojs/hono
+# The parent of the human fix, tagged eval/hono-5083 in the local clone.
+start: 0fc7ffc94988d0dce19477d3e1cce29f3c2da1cb
+request:
+  issue: https://github.com/honojs/hono/issues/5083
+  title: "etag middleware ignores `If-None-Match: *` wildcard (RFC 9110 §13.1.2)"
+  # SHA-256 of the issue body when the case was made, to notice later edits.
+  bodySha256: 9522646a8eb27735752e8f713c6a87a971e4fba8db715b010bf1b87b596c089b
+expected:
+  outcome: complete
+  prepare: "bun install --frozen-lockfile"
+  # Apply the hidden tests on top of the result, then run the checks; all must pass.
+  hidden:
+    commit: 2126289c15b0f87fb928645c4ed92d0f81d21cd4
+    paths:
+      - src/middleware/etag/index.test.ts
+  checks:
+    - "bunx vitest --run --coverage.enabled=false src/middleware/etag/index.test.ts"
+  reference: 2126289c15b0f87fb928645c4ed92d0f81d21cd4

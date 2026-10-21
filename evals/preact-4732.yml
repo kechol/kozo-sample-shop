@@ -1,0 +1,24 @@
+# Eval case, format version 1 (D-046). Replayed from a resolved upstream issue on a local
+# clone; the issue text and the fix stay upstream and are referenced, never copied.
+version: 1
+id: preact-4732
+repository: preactjs/preact
+# The parent of the human fix, tagged eval/preact-4732 in the local clone.
+start: 97981053ad8aeab3bce30c687d3f7d7b8e94920f
+request:
+  issue: https://github.com/preactjs/preact/issues/4732
+  title: "Bug: `<template>` tag content rendered twice"
+  # SHA-256 of the issue body when the case was made, to notice later edits.
+  bodySha256: 9324dab6b9d42e34abde5db4ab6f3bc4a9d7116673d5d4777c4e47b3c23812ec
+expected:
+  outcome: complete
+  prepare: "npm ci --ignore-scripts && npx playwright install chromium"
+  # Apply the hidden tests on top of the result, then run the checks; all must pass.
+  hidden:
+    commit: cfaa1b96ddf4d6906038188a2c3f10a715633a57
+    paths:
+      - test/browser/hydrate.test.jsx
+      - test/browser/render.test.jsx
+  checks:
+    - "npx vitest run test/browser/hydrate.test.jsx test/browser/render.test.jsx"
+  reference: cfaa1b96ddf4d6906038188a2c3f10a715633a57

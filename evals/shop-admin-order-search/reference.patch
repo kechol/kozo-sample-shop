@@ -1,0 +1,103 @@
+diff --git a/src/app/admin/orders/page.tsx b/src/app/admin/orders/page.tsx
+index 72d2be8..b5fa28b 100644
+--- a/src/app/admin/orders/page.tsx
++++ b/src/app/admin/orders/page.tsx
+@@ -83,10 +83,19 @@ export default async function AdminOrdersPage({
+   const params = await searchParams;
+   const status = orderStatusSchema.safeParse(firstParam(params.status)).data;
+   const notice = notices[firstParam(params.notice) ?? ""];
++  const q = firstParam(params.q)?.trim() ?? "";
+   const { items, page, pageCount } = await listOrdersForAdmin(getDatabase(), {
+     status,
++    email: q,
+     page: pageParam(params.page),
+   });
++  const listHref = (next: { status?: OrderStatus }) => {
++    const search = new URLSearchParams();
++    if (next.status) search.set("status", next.status);
++    if (q) search.set("q", q);
++    const text = search.toString();
++    return text ? `/admin/orders?${text}` : "/admin/orders";
++  };
+ 
+   return (
+     <>
+@@ -99,12 +108,31 @@ export default async function AdminOrdersPage({
+           {notice.text}
+         </p>
+       )}
++      <form
++        method="get"
++        action="/admin/orders"
++        className="mb-4 flex gap-2 text-sm"
++      >
++        {status && <input type="hidden" name="status" value={status} />}
++        <label className="flex items-center gap-2">
++          Search by email
++          <input
++            name="q"
++            type="search"
++            defaultValue={q}
++            className="rounded border border-stone-300 px-2 py-1"
++          />
++        </label>
++        <button type="submit" className="text-brand">
++          Search
++        </button>
++      </form>
+       <nav
+         aria-label="Order status"
+         className="mb-4 flex flex-wrap gap-3 text-sm"
+       >
+         <Link
+-          href="/admin/orders"
++          href={listHref({})}
+           aria-current={status ? undefined : "page"}
+           className={status ? "text-brand" : "font-semibold"}
+         >
+@@ -113,7 +141,7 @@ export default async function AdminOrdersPage({
+         {orderStatus.enumValues.map((value) => (
+           <Link
+             key={value}
+-            href={`/admin/orders?status=${value}`}
++            href={listHref({ status: value })}
+             aria-current={status === value ? "page" : undefined}
+             className={status === value ? "font-semibold" : "text-brand"}
+           >
+@@ -175,7 +203,7 @@ export default async function AdminOrdersPage({
+         page={page}
+         pageCount={pageCount}
+         basePath="/admin/orders"
+-        params={status ? { status } : {}}
++        params={{ ...(status ? { status } : {}), ...(q ? { q } : {}) }}
+       />
+     </>
+   );
+diff --git a/src/lib/admin/orders.ts b/src/lib/admin/orders.ts
+index a4110e7..729b83c 100644
+--- a/src/lib/admin/orders.ts
++++ b/src/lib/admin/orders.ts
+@@ -1,4 +1,4 @@
+-import { asc, count, desc, eq } from "drizzle-orm";
++import { and, asc, count, desc, eq, ilike } from "drizzle-orm";
+ import type { Database } from "@/db/client";
+ import { type OrderStatus, orderItems, orders } from "@/db/schema";
+ import {
+@@ -11,9 +11,15 @@ const PAGE_SIZE = 20;
+ 
+ export async function listOrdersForAdmin(
+   db: Database,
+-  query: { status?: OrderStatus; page?: number } = {},
++  query: { status?: OrderStatus; email?: string; page?: number } = {},
+ ) {
+-  const where = query.status ? eq(orders.status, query.status) : undefined;
++  const email = query.email?.trim();
++  const where = and(
++    query.status ? eq(orders.status, query.status) : undefined,
++    email
++      ? ilike(orders.email, `%${email.replace(/[\\%_]/g, (c) => `\\${c}`)}%`)
++      : undefined,
++  );
+   const [totalRow] = await db
+     .select({ value: count() })
+     .from(orders)

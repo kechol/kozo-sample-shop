@@ -1,0 +1,17 @@
+# Eval case, format version 1 (D-046). The start tag points at the commit before evals/ was
+# added, so a run starts from a tree without this directory.
+version: 1
+id: shop-multi-currency
+repository: kechol/kozo-sample-shop
+start: eval/shop-multi-currency
+request:
+  title: Sell in EUR and JPY
+  body: |
+    Sell in EUR and JPY as well as USD: a price per currency for every product, a
+    currency switcher in the header, carts, totals and charges in the chosen
+    currency, and admin editing of every price.
+expected:
+  outcome: split
+  why: The request spans the data model, the catalog, checkout, payments and the admin, which is more than one task.
+  forbidden:
+    - implements it as a single task

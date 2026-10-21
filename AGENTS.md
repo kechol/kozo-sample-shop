@@ -16,6 +16,7 @@ credentials, is made up. Treat the repository as public.
 | `tests/integration/` | Vitest tests against the `shop_test` database |
 | `e2e/` | Playwright tests against the production build |
 | `.kozo/` | kozo's gate definitions and app verification steps |
+| `evals/` | kozo eval cases: requests with expected outcomes, hidden tests and reference fixes |
 
 ## Commands
 
@@ -75,7 +76,7 @@ runs the deep level.
 
 Do not change these without a human's explicit approval:
 
-- `.kozo/`, `AGENTS.md`, `CLAUDE.md`
+- `.kozo/`, `AGENTS.md`, `CLAUDE.md`, `evals/`
 - `drizzle/`
 - `src/lib/payments/`, `src/lib/auth.ts`
 - `.github/workflows/`

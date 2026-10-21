@@ -1,0 +1,27 @@
+# Eval case, format version 1 (D-046). The start tag points at the commit before evals/ was
+# added, so a run starts from a tree without this directory.
+version: 1
+id: shop-sort-by-price
+repository: kechol/kozo-sample-shop
+start: eval/shop-sort-by-price
+request:
+  title: Sort category pages by price
+  body: |
+    Let buyers sort a category page by price. `?sort=price-asc` lists the cheapest
+    first and `?sort=price-desc` the most expensive first; without the parameter,
+    keep the current order by name. Add links labelled "Name", "Price: low to high"
+    and "Price: high to low" above the products, and keep the sort when paging.
+expected:
+  outcome: complete
+  prepare: pnpm install --frozen-lockfile && pnpm db:up
+  hidden:
+    files:
+      e2e/eval-sort-by-price.spec.ts: shop-sort-by-price/eval-sort-by-price.spec.ts
+  checks:
+    - pnpm typecheck
+    - pnpm lint
+    - pnpm test:unit
+    - pnpm test:integration
+    - pnpm build
+    - pnpm test:e2e
+  reference: shop-sort-by-price/reference.patch

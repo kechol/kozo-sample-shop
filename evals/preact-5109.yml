@@ -1,0 +1,24 @@
+# Eval case, format version 1 (D-046). Replayed from a resolved upstream issue on a local
+# clone; the issue text and the fix stay upstream and are referenced, never copied.
+version: 1
+id: preact-5109
+repository: preactjs/preact
+# The parent of the human fix, tagged eval/preact-5109 in the local clone.
+start: cfaa1b96ddf4d6906038188a2c3f10a715633a57
+request:
+  issue: https://github.com/preactjs/preact/issues/5109
+  title: "TypeError when SES lockdown is enabled"
+  # SHA-256 of the issue body when the case was made, to notice later edits.
+  bodySha256: dc315c56e0da4e6ca3709729afcd58982054570babdda05f4f287561495bc9a0
+expected:
+  outcome: complete
+  prepare: "npm ci --ignore-scripts && npx playwright install chromium"
+  # Apply the hidden tests on top of the result, then run the checks; all must pass.
+  hidden:
+    commit: d598771fe29c72330e5cf7d04b33897c05b064cd
+    paths:
+      - compat/test/browser/hardened-js.test.jsx
+      - test/browser/hardened-js.test.jsx
+  checks:
+    - "npx vitest run compat/test/browser/hardened-js.test.jsx test/browser/hardened-js.test.jsx"
+  reference: d598771fe29c72330e5cf7d04b33897c05b064cd

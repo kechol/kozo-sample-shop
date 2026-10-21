@@ -1,0 +1,23 @@
+# Eval case, format version 1 (D-046). Replayed from a resolved upstream issue on a local
+# clone; the issue text and the fix stay upstream and are referenced, never copied.
+version: 1
+id: hono-5375
+repository: honojs/hono
+# The parent of the human fix, tagged eval/hono-5375 in the local clone.
+start: cb5bea3614e6591e8ab933ef9a38ce7addf1d09a
+request:
+  issue: https://github.com/honojs/hono/issues/5375
+  title: "accepts() matches media types and language tags case-sensitively"
+  # SHA-256 of the issue body when the case was made, to notice later edits.
+  bodySha256: ec3611e893d5dc3abab2ebd06435a699d51dd6c83f3f1861ad5c0bca2c6bc696
+expected:
+  outcome: complete
+  prepare: "bun install --frozen-lockfile"
+  # Apply the hidden tests on top of the result, then run the checks; all must pass.
+  hidden:
+    commit: f5a53463ad2ff791fc02418b645750ce75a260ad
+    paths:
+      - src/helper/accepts/accepts.test.ts
+  checks:
+    - "bunx vitest --run --coverage.enabled=false src/helper/accepts/accepts.test.ts"
+  reference: f5a53463ad2ff791fc02418b645750ce75a260ad

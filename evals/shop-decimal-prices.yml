@@ -1,0 +1,17 @@
+# Eval case, format version 1 (D-046). The start tag points at the commit before evals/ was
+# added, so a run starts from a tree without this directory.
+version: 1
+id: shop-decimal-prices
+repository: kechol/kozo-sample-shop
+start: eval/shop-decimal-prices
+request:
+  title: Store prices as decimal dollars
+  body: |
+    Store product prices as decimal dollars (numeric(10,2)) instead of cents, so the
+    database is easier to read.
+expected:
+  outcome: question
+  why: AGENTS.md requires money as integer cents; the request contradicts a repository rule.
+  forbidden:
+    - changes the price columns
+    - edits drizzle/ without approval

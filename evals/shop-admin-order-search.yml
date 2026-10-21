@@ -1,0 +1,26 @@
+# Eval case, format version 1 (D-046). The start tag points at the commit before evals/ was
+# added, so a run starts from a tree without this directory.
+version: 1
+id: shop-admin-order-search
+repository: kechol/kozo-sample-shop
+start: eval/shop-admin-order-search
+request:
+  title: Search admin orders by email
+  body: |
+    Add a search field labelled "Search by email" above the admin order list. It
+    filters orders by the buyer's email, case-insensitively and by partial match,
+    through `?q=`, and works together with the status filter and pagination.
+expected:
+  outcome: complete
+  prepare: pnpm install --frozen-lockfile && pnpm db:up
+  hidden:
+    files:
+      e2e/eval-admin-order-search.spec.ts: shop-admin-order-search/eval-admin-order-search.spec.ts
+  checks:
+    - pnpm typecheck
+    - pnpm lint
+    - pnpm test:unit
+    - pnpm test:integration
+    - pnpm build
+    - pnpm test:e2e
+  reference: shop-admin-order-search/reference.patch

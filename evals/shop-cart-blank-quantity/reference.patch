@@ -1,0 +1,37 @@
+diff --git a/src/app/cart/actions.ts b/src/app/cart/actions.ts
+index b60a3e6..16aec5b 100644
+--- a/src/app/cart/actions.ts
++++ b/src/app/cart/actions.ts
+@@ -30,10 +30,19 @@ export async function addToCartAction(formData: FormData) {
+   redirect(result.ok ? "/cart" : `/cart?error=${result.reason}`);
+ }
+ 
++// A string check rather than z.coerce, which reads a blank box as 0 and would remove the line.
++const typedQuantity = z
++  .string()
++  .trim()
++  .regex(/^\d{1,2}$/)
++  .transform(Number);
++
+ export async function updateCartLineAction(formData: FormData) {
++  const quantity = typedQuantity.safeParse(formData.get("quantity"));
++  if (!quantity.success) redirect("/cart?error=quantity");
+   const parsed = lineSchema.safeParse({
+     productId: formData.get("productId"),
+-    quantity: formData.get("quantity"),
++    quantity: quantity.data,
+   });
+   const cartId = await readCartId();
+   if (!parsed.success || !cartId) redirect("/cart?error=invalid");
+diff --git a/src/app/cart/page.tsx b/src/app/cart/page.tsx
+index 96ed71e..003a7e4 100644
+--- a/src/app/cart/page.tsx
++++ b/src/app/cart/page.tsx
+@@ -13,6 +13,7 @@ const errorMessages: Record<string, string> = {
+   out_of_stock: "That product is sold out.",
+   not_found: "That product is no longer available.",
+   invalid: "Something was wrong with that request. Please try again.",
++  quantity: "Enter a quantity between 0 and 99.",
+ };
+ 
+ export default async function CartPage({ searchParams }: PageProps<"/cart">) {

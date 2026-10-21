@@ -1,0 +1,23 @@
+# Eval case, format version 1 (D-046). Replayed from a resolved upstream issue on a local
+# clone; the issue text and the fix stay upstream and are referenced, never copied.
+version: 1
+id: hono-5403
+repository: honojs/hono
+# The parent of the human fix, tagged eval/hono-5403 in the local clone.
+start: 52febbcc30bc509d5e4987577e63906fe08fc471
+request:
+  issue: https://github.com/honojs/hono/issues/5403
+  title: "aws-lambda: a binary `+xml` response is corrupted (`application/vnd.apple.installer+xml`)"
+  # SHA-256 of the issue body when the case was made, to notice later edits.
+  bodySha256: 7d79c786e57ce678993848542cc7e3699f4a20ca4b4d8cc5d78ec96e2351fffb
+expected:
+  outcome: complete
+  prepare: "bun install --frozen-lockfile"
+  # Apply the hidden tests on top of the result, then run the checks; all must pass.
+  hidden:
+    commit: 0d86899d28e146da0c8760201b2d08ddae732eaa
+    paths:
+      - src/adapter/aws-lambda/handler.test.ts
+  checks:
+    - "bunx vitest --run --coverage.enabled=false src/adapter/aws-lambda/handler.test.ts"
+  reference: 0d86899d28e146da0c8760201b2d08ddae732eaa

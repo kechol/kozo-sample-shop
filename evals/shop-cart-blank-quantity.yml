@@ -1,0 +1,27 @@
+# Eval case, format version 1 (D-046). The start tag points at the commit before evals/ was
+# added, so a run starts from a tree without this directory.
+version: 1
+id: shop-cart-blank-quantity
+repository: kechol/kozo-sample-shop
+start: eval/shop-cart-blank-quantity
+request:
+  title: Clearing the quantity removes the item
+  body: |
+    Clearing the quantity box on the cart page and pressing Update removes the item
+    from my cart. I expected the cart to stay as it was and a message saying
+    "Enter a quantity between 0 and 99." Setting the quantity to 0 on purpose can
+    still remove the item, as it does today.
+expected:
+  outcome: complete
+  prepare: pnpm install --frozen-lockfile && pnpm db:up
+  hidden:
+    files:
+      e2e/eval-cart-blank-quantity.spec.ts: shop-cart-blank-quantity/eval-cart-blank-quantity.spec.ts
+  checks:
+    - pnpm typecheck
+    - pnpm lint
+    - pnpm test:unit
+    - pnpm test:integration
+    - pnpm build
+    - pnpm test:e2e
+  reference: shop-cart-blank-quantity/reference.patch

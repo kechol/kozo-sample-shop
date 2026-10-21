@@ -85,10 +85,10 @@ unattended.
 
 [`evals/`](evals) holds kozo's eval cases: requests with the outcome kozo should
 reach, from completing the change to stopping with a question. Cases for this
-shop start from a tag `eval/<case>` on the commit before `evals/` was added and
-check the result with a hidden test. Cases replayed from honojs/hono and
-preactjs/preact run on local clones and reference the upstream issue and fix
-instead of copying them.
+shop start from a tag `eval/<case>` on a parentless commit that holds the shop
+without `evals/`, and check the result with a hidden test. Cases replayed from
+honojs/hono and preactjs/preact run on local clones and reference the upstream
+issue and fix instead of copying them.
 
 ## License
 

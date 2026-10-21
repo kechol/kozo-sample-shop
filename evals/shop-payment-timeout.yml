@@ -1,5 +1,5 @@
-# Eval case, format version 1 (D-046). The start tag points at the commit before evals/ was
-# added, so a run starts from a tree without this directory.
+# Eval case, format version 1 (D-046). The start tag points at a parentless commit holding the
+# shop without evals/, so neither the tree nor the history of a run reaches this directory.
 version: 1
 id: shop-payment-timeout
 repository: kechol/kozo-sample-shop

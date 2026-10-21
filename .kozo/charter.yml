@@ -12,6 +12,9 @@ protected_paths:
   - "src/lib/payments/**"
   - "src/lib/auth.ts"
   - ".github/workflows/**"
+  # The lint and type-check settings decide what those gates accept.
+  - "biome.json"
+  - "tsconfig.json"
 existing_tests_protected: true
 levels:
   default: L1

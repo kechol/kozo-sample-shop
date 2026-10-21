@@ -80,6 +80,7 @@ Do not change these without a human's explicit approval:
 - `drizzle/`
 - `src/lib/payments/`, `src/lib/auth.ts`
 - `.github/workflows/`
+- `biome.json`, `tsconfig.json`
 
 ## Test-only credentials
 

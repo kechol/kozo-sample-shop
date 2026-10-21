@@ -3,6 +3,13 @@ version: 1
 prepare:
   - pnpm install --frozen-lockfile
   - pnpm db:up
+# Test files and the configuration that decides how tests run.
+tests:
+  - "**/*.test.ts"
+  - "e2e/**"
+  - "tests/**"
+  - "vitest.config.ts"
+  - "playwright.config.ts"
 gates:
   typecheck:
     run: pnpm typecheck

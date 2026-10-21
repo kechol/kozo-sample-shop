@@ -42,8 +42,9 @@ const timesOut: PaymentsClient = {
   },
 };
 
-// Holds the charge open until the test releases it, to interleave an admin action with it.
-function heldCharge(outcome: ChargeResult) {
+// Places an order whose charge stays open until the test releases it, to interleave an
+// admin action with the charge.
+async function placeHeldOrder(outcome: ChargeResult) {
   let release = () => {};
   let markStarted = () => {};
   const started = new Promise<void>((resolve) => {
@@ -59,26 +60,30 @@ function heldCharge(outcome: ChargeResult) {
       return outcome;
     },
   };
-  return { client, started, release };
+  const cartId = await cartWith("hand-grinder", 2);
+  const placing = placeOrder(db, client, {
+    cartId,
+    shipping,
+    cardNumber: "4242424242424242",
+  });
+  await started;
+  const { items } = await listOrdersForAdmin(db, { status: "pending_payment" });
+  const orderId = items[0]?.id;
+  if (!orderId) throw new Error("No pending order");
+  return { cartId, orderId, placing, release };
 }
 
-async function stockOf(slug: string) {
+async function product(slug: string) {
   const [row] = await db
-    .select({ stock: products.stock })
+    .select({ id: products.id, stock: products.stock })
     .from(products)
     .where(eq(products.slug, slug));
   if (!row) throw new Error(`No product ${slug}`);
-  return row.stock;
+  return row;
 }
 
-async function productId(slug: string) {
-  const [row] = await db
-    .select({ id: products.id })
-    .from(products)
-    .where(eq(products.slug, slug));
-  if (!row) throw new Error(`No product ${slug}`);
-  return row.id;
-}
+const productId = async (slug: string) => (await product(slug)).id;
+const stockOf = async (slug: string) => (await product(slug)).stock;
 
 async function cartWith(slug: string, quantity: number) {
   const cartId = await createCart(db);
@@ -177,22 +182,13 @@ describe("cancelOrder", () => {
   });
 
   it("keeps the order cancelled when its charge succeeds afterwards", async () => {
-    const held = heldCharge({ status: "succeeded", chargeId: "ch_late" });
-    const cartId = await cartWith("hand-grinder", 2);
-    const placing = placeOrder(db, held.client, {
-      cartId,
-      shipping,
-      cardNumber: "4242424242424242",
+    const { cartId, orderId, placing, release } = await placeHeldOrder({
+      status: "succeeded",
+      chargeId: "ch_late",
     });
-    await held.started;
-    const { items } = await listOrdersForAdmin(db, {
-      status: "pending_payment",
-    });
-    const orderId = items[0]?.id;
-    if (!orderId) throw new Error("No pending order");
 
     expect(await cancelOrder(db, orderId)).toEqual({ ok: true });
-    held.release();
+    release();
     expect(await placing).toEqual({
       ok: false,
       reason: "order_cancelled",
@@ -204,22 +200,13 @@ describe("cancelOrder", () => {
   });
 
   it("returns the stock once when the provider refuses the charge afterwards", async () => {
-    const held = heldCharge({ status: "not_charged", code: "card_declined" });
-    const cartId = await cartWith("hand-grinder", 2);
-    const placing = placeOrder(db, held.client, {
-      cartId,
-      shipping,
-      cardNumber: "4242424242424242",
+    const { orderId, placing, release } = await placeHeldOrder({
+      status: "not_charged",
+      code: "card_declined",
     });
-    await held.started;
-    const { items } = await listOrdersForAdmin(db, {
-      status: "pending_payment",
-    });
-    const orderId = items[0]?.id;
-    if (!orderId) throw new Error("No pending order");
 
     expect(await cancelOrder(db, orderId)).toEqual({ ok: true });
-    held.release();
+    release();
     await placing;
     expect((await getOrder(db, orderId))?.status).toBe("cancelled");
     expect(await stockOf("hand-grinder")).toBe(9);

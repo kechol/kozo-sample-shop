@@ -46,9 +46,9 @@ pnpm test:e2e           # needs `pnpm build` first
 - Send every charge with the order id as the idempotency key. Release an order only on
   a definite refusal (4xx); any other failure leaves it `pending_payment`.
 - Lock rows that a decision depends on (`SELECT … FOR UPDATE`), in id order.
-- Change an order's status with an update conditioned on the status it leaves
-  (`WHERE status = …`), and return stock only in the transaction that moved the order
-  out of `pending_payment`, so concurrent changes never apply twice.
+- Change an order's status only through `transitionOrder` in `src/lib/order-transitions.ts`.
+  It applies a change only from the expected status and returns the stock of an order that
+  leaves `pending_payment` unpaid, so concurrent changes never apply twice.
 - Use fictional data and reserved domains such as `example.com` in seeds and tests.
 - Write tests at the lowest level that can prove the behaviour: unit for pure
   functions, integration for database rules, e2e for what a buyer sees.

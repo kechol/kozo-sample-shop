@@ -4,62 +4,56 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getDatabase } from "@/db/client";
-import { orderStatus } from "@/db/schema";
 import { cancelOrder, markOrderShipped } from "@/lib/admin/orders";
 import {
   createProduct,
+  type ProductInput,
   type SaveProductResult,
   updateProduct,
 } from "@/lib/admin/products";
 import { requireAdmin } from "@/lib/auth";
 import { parsePrice } from "@/lib/money";
+import { orderStatusSchema } from "@/lib/order-status";
 
 export type ProductFormState = {
   error?: string;
   fieldErrors?: Partial<Record<string, string>>;
 };
 
-const productSchema = z.object({
-  name: z.string().trim().min(1, "Enter a name").max(200),
-  slug: z
-    .string()
-    .trim()
-    .max(100)
-    .regex(
-      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-      "Use lowercase letters, digits and single hyphens",
-    ),
-  description: z.string().trim().min(1, "Enter a description").max(2000),
-  price: z.string().transform((text, ctx) => {
-    const cents = parsePrice(text);
-    if (cents === null) {
-      ctx.addIssue({ code: "custom", message: "Enter a price such as 12.50" });
-      return z.NEVER;
-    }
-    return cents;
-  }),
-  stock: z.coerce
-    .number<string>()
-    .int("Enter a whole number")
-    .min(0, "Stock cannot be negative")
-    .max(100_000),
-  categoryId: z.coerce.number<string>().int().positive("Choose a category"),
-});
+const wholeNumber = z.coerce
+  .number<string>()
+  .int("Enter a whole number")
+  .min(0, "Stock cannot be negative");
+
+const productSchema = z
+  .object({
+    name: z.string().trim().min(1, "Enter a name").max(200),
+    slug: z
+      .string()
+      .trim()
+      .max(100)
+      .regex(
+        /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+        "Use lowercase letters, digits and single hyphens",
+      ),
+    description: z.string().trim().min(1, "Enter a description").max(2000),
+    price: z.string().transform((text, ctx) => {
+      const cents = parsePrice(text);
+      if (cents === null) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Enter a price such as 12.50",
+        });
+        return z.NEVER;
+      }
+      return cents;
+    }),
+    stock: wholeNumber.max(100_000),
+    categoryId: z.coerce.number<string>().int().positive("Choose a category"),
+  })
+  .transform(({ price, ...rest }) => ({ ...rest, priceCents: price }));
 
 const productIdSchema = z.coerce.number<string>().int().positive();
-
-function parseProduct(formData: FormData) {
-  const parsed = productSchema.safeParse(Object.fromEntries(formData));
-  if (parsed.success) {
-    const { price, ...rest } = parsed.data;
-    return { ok: true as const, input: { ...rest, priceCents: price } };
-  }
-  const fieldErrors: Record<string, string> = {};
-  for (const issue of parsed.error.issues) {
-    fieldErrors[String(issue.path[0])] ??= issue.message;
-  }
-  return { ok: false as const, state: { fieldErrors } };
-}
 
 function saveFailure(
   result: Exclude<SaveProductResult, { ok: true }>,
@@ -80,17 +74,30 @@ function saveFailure(
   }
 }
 
+async function saveProduct(
+  formData: FormData,
+  save: (input: ProductInput) => Promise<SaveProductResult>,
+): Promise<ProductFormState> {
+  const parsed = productSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const issue of parsed.error.issues) {
+      fieldErrors[String(issue.path[0])] ??= issue.message;
+    }
+    return { fieldErrors };
+  }
+  const result = await save(parsed.data);
+  if (!result.ok) return saveFailure(result);
+  revalidatePath("/", "layout");
+  redirect("/admin/products");
+}
+
 export async function createProductAction(
   _previous: ProductFormState,
   formData: FormData,
 ): Promise<ProductFormState> {
   await requireAdmin();
-  const parsed = parseProduct(formData);
-  if (!parsed.ok) return parsed.state;
-  const result = await createProduct(getDatabase(), parsed.input);
-  if (!result.ok) return saveFailure(result);
-  revalidatePath("/", "layout");
-  redirect("/admin/products");
+  return saveProduct(formData, (input) => createProduct(getDatabase(), input));
 }
 
 export async function updateProductAction(
@@ -99,31 +106,19 @@ export async function updateProductAction(
 ): Promise<ProductFormState> {
   await requireAdmin();
   const id = productIdSchema.safeParse(formData.get("id"));
-  const expectedStock = z.coerce
-    .number<string>()
-    .int()
-    .min(0)
-    .safeParse(formData.get("expectedStock"));
+  const expectedStock = wholeNumber.safeParse(formData.get("expectedStock"));
   if (!id.success || !expectedStock.success) {
     return { error: "Reload the page and try again." };
   }
-  const parsed = parseProduct(formData);
-  if (!parsed.ok) return parsed.state;
-  const result = await updateProduct(
-    getDatabase(),
-    id.data,
-    parsed.input,
-    expectedStock.data,
+  return saveProduct(formData, (input) =>
+    updateProduct(getDatabase(), id.data, input, expectedStock.data),
   );
-  if (!result.ok) return saveFailure(result);
-  revalidatePath("/", "layout");
-  redirect("/admin/products");
 }
 
 const orderActionSchema = z.object({
   orderId: z.uuid(),
   // The list filter to return to, so the admin keeps their place.
-  status: z.enum(orderStatus.enumValues).optional().catch(undefined),
+  status: orderStatusSchema.optional().catch(undefined),
 });
 
 async function runOrderAction(

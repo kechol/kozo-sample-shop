@@ -43,16 +43,16 @@ export async function createProduct(
   input: ProductInput,
 ): Promise<SaveProductResult> {
   return catchSlugTaken(() =>
-    db.transaction(async (tx) => {
+    db.transaction(async (tx): Promise<SaveProductResult> => {
       if (!(await categoryExists(tx, input.categoryId))) {
-        return { ok: false as const, reason: "unknown_category" as const };
+        return { ok: false, reason: "unknown_category" };
       }
       const [row] = await tx
         .insert(products)
         .values(input)
         .returning({ id: products.id });
       if (!row) throw new Error("Failed to create the product");
-      return { ok: true as const, id: row.id };
+      return { ok: true, id: row.id };
     }),
   );
 }
@@ -67,29 +67,29 @@ export async function updateProduct(
   expectedStock: number,
 ): Promise<SaveProductResult> {
   return catchSlugTaken(() =>
-    db.transaction(async (tx) => {
+    db.transaction(async (tx): Promise<SaveProductResult> => {
       const [current] = await tx
         .select({ stock: products.stock })
         .from(products)
         .where(eq(products.id, id))
         .for("update");
-      if (!current) return { ok: false as const, reason: "not_found" as const };
+      if (!current) return { ok: false, reason: "not_found" };
       const stockEdited = input.stock !== expectedStock;
       if (stockEdited && current.stock !== expectedStock) {
         return {
-          ok: false as const,
-          reason: "stock_changed" as const,
+          ok: false,
+          reason: "stock_changed",
           currentStock: current.stock,
         };
       }
       if (!(await categoryExists(tx, input.categoryId))) {
-        return { ok: false as const, reason: "unknown_category" as const };
+        return { ok: false, reason: "unknown_category" };
       }
       await tx
         .update(products)
         .set({ ...input, stock: stockEdited ? input.stock : current.stock })
         .where(eq(products.id, id));
-      return { ok: true as const, id };
+      return { ok: true, id };
     }),
   );
 }

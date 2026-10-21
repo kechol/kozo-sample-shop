@@ -3,8 +3,16 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import { getDatabase } from "@/db/client";
-import { accounts, sessions, users, verifications } from "@/db/schema";
+import {
+  accounts,
+  sessions,
+  type UserRole,
+  userRole,
+  users,
+  verifications,
+} from "@/db/schema";
 
 function createAuth() {
   return betterAuth({
@@ -22,7 +30,7 @@ function createAuth() {
       additionalFields: {
         // input: false keeps the role out of sign-up and profile updates, so nobody can grant it to themselves.
         role: {
-          type: ["customer", "admin"],
+          type: [...userRole.enumValues],
           required: false,
           defaultValue: "customer",
           input: false,
@@ -46,15 +54,17 @@ export type SessionUser = {
   id: string;
   name: string;
   email: string;
-  role: "customer" | "admin";
+  role: UserRole;
 };
 
-export async function getSessionUser(): Promise<SessionUser | null> {
+// Cached per request, since the root layout, the admin layout and the page each ask.
+export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   const session = await getAuth().api.getSession({ headers: await headers() });
   if (!session) return null;
   const { id, name, email, role } = session.user;
-  return { id, name, email, role: role === "admin" ? "admin" : "customer" };
-}
+  // better-auth types the field as optional because sign-up cannot set it; the column defaults it.
+  return { id, name, email, role: role ?? "customer" };
+});
 
 // A 404 rather than a sign-in prompt, so the admin pages do not reveal that they exist.
 // Server Actions call this too, since they can be invoked without rendering the page.

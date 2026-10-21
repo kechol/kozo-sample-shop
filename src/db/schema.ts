@@ -244,3 +244,4 @@ export type Category = typeof categories.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type OrderStatus = Order["status"];
+export type UserRole = (typeof userRole.enumValues)[number];

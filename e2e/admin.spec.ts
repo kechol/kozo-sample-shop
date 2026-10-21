@@ -10,7 +10,8 @@ async function signIn(page: Page, email: string, password: string) {
 }
 
 // Server Actions accept a POST from anyone who knows the action id, which ships in the page
-// bundle, so the test reads it from the build the server runs.
+// bundle, so the test reads it from the build the server runs. The manifest is internal to
+// Next.js; update this lookup if an upgrade moves it.
 function actionId(exportedName: string) {
   const manifest = JSON.parse(
     readFileSync(".next/server/server-reference-manifest.json", "utf8"),
@@ -33,6 +34,20 @@ async function postAction(
     multipart: { [`$ACTION_ID_${actionId(exportedName)}`]: "", ...fields },
     maxRedirects: 0,
   });
+}
+
+async function buy(page: Page, slug: string, email: string, name: string) {
+  await page.goto(`/products/${slug}`);
+  await page.getByRole("button", { name: "Add to cart" }).click();
+  await page.getByRole("link", { name: "Check out" }).click();
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Full name").fill(name);
+  await page.getByLabel("Street address").fill("1 Example Street");
+  await page.getByLabel("City").fill("Springfield");
+  await page.getByLabel("Postal code").fill("12345");
+  await page.getByLabel("Card number").fill("4242 4242 4242 4242");
+  await page.getByRole("button", { name: "Place order" }).click();
+  await expect(page.getByTestId("order-status")).toHaveText("Paid");
 }
 
 function uniqueSlug(prefix: string) {
@@ -99,16 +114,7 @@ test("creates and edits a product, then ships its order", async ({ page }) => {
 
   await page.goto(`/products/${slug}`);
   await expect(page.getByText("$39.50")).toBeVisible();
-  await page.getByRole("button", { name: "Add to cart" }).click();
-  await page.getByRole("link", { name: "Check out" }).click();
-  await page.getByLabel("Email").fill("admin@example.com");
-  await page.getByLabel("Full name").fill("Sample Admin");
-  await page.getByLabel("Street address").fill("1 Example Street");
-  await page.getByLabel("City").fill("Springfield");
-  await page.getByLabel("Postal code").fill("12345");
-  await page.getByLabel("Card number").fill("4242 4242 4242 4242");
-  await page.getByRole("button", { name: "Place order" }).click();
-  await expect(page.getByTestId("order-status")).toHaveText("Paid");
+  await buy(page, slug, "admin@example.com", "Sample Admin");
 
   await page.goto("/admin/orders?status=paid");
   const row = page
@@ -131,17 +137,7 @@ test("creates and edits a product, then ships its order", async ({ page }) => {
 
 test("refuses an admin action posted by a buyer", async ({ page, browser }) => {
   await signIn(page, "buyer@example.com", "buyer-password-123");
-  await page.goto("/products/wool-socks");
-  await page.getByRole("button", { name: "Add to cart" }).click();
-  await page.getByRole("link", { name: "Check out" }).click();
-  await page.getByLabel("Email").fill("buyer@example.com");
-  await page.getByLabel("Full name").fill("Sample Buyer");
-  await page.getByLabel("Street address").fill("1 Example Street");
-  await page.getByLabel("City").fill("Springfield");
-  await page.getByLabel("Postal code").fill("12345");
-  await page.getByLabel("Card number").fill("4242 4242 4242 4242");
-  await page.getByRole("button", { name: "Place order" }).click();
-  await expect(page.getByTestId("order-status")).toHaveText("Paid");
+  await buy(page, "wool-socks", "buyer@example.com", "Sample Buyer");
   const orderId = page.url().split("/").pop() ?? "";
 
   const refused = await postAction(page, "markShippedAction", { orderId });

@@ -7,7 +7,7 @@ import { type OrderStatus, orderStatus } from "@/db/schema";
 import { listOrdersForAdmin } from "@/lib/admin/orders";
 import { requireAdmin } from "@/lib/auth";
 import { formatPrice } from "@/lib/money";
-import { orderStatusLabels } from "@/lib/order-status";
+import { orderStatusLabels, orderStatusSchema } from "@/lib/order-status";
 import { firstParam, pageParam } from "@/lib/search-params";
 
 export const metadata: Metadata = { title: "Orders · Admin" };
@@ -31,8 +31,49 @@ const notices: Record<string, { text: string; error: boolean }> = {
   not_found: { text: "That order does not exist.", error: true },
 };
 
-function isOrderStatus(value: string | undefined): value is OrderStatus {
-  return orderStatus.enumValues.some((status) => status === value);
+// The only statuses an admin can move an order out of.
+const orderActions: Partial<
+  Record<
+    OrderStatus,
+    {
+      action: (formData: FormData) => Promise<void>;
+      label: string;
+      className: string;
+    }
+  >
+> = {
+  paid: {
+    action: markShippedAction,
+    label: "Mark shipped",
+    className: "text-brand",
+  },
+  pending_payment: {
+    action: cancelOrderAction,
+    label: "Cancel order",
+    className: "text-red-700",
+  },
+};
+
+function OrderAction({
+  orderId,
+  current,
+  filter,
+}: {
+  orderId: string;
+  current: OrderStatus;
+  filter: OrderStatus | undefined;
+}) {
+  const next = orderActions[current];
+  if (!next) return null;
+  return (
+    <form action={next.action}>
+      <input type="hidden" name="orderId" value={orderId} />
+      <input type="hidden" name="status" value={filter ?? ""} />
+      <button type="submit" className={next.className}>
+        {next.label}
+      </button>
+    </form>
+  );
 }
 
 export default async function AdminOrdersPage({
@@ -40,8 +81,7 @@ export default async function AdminOrdersPage({
 }: PageProps<"/admin/orders">) {
   await requireAdmin();
   const params = await searchParams;
-  const statusParam = firstParam(params.status);
-  const status = isOrderStatus(statusParam) ? statusParam : undefined;
+  const status = orderStatusSchema.safeParse(firstParam(params.status)).data;
   const notice = notices[firstParam(params.notice) ?? ""];
   const { items, page, pageCount } = await listOrdersForAdmin(getDatabase(), {
     status,
@@ -113,24 +153,11 @@ export default async function AdminOrdersPage({
                 {formatPrice(order.totalCents)}
               </div>
               <div className="w-32 text-right">
-                {order.status === "paid" && (
-                  <form action={markShippedAction}>
-                    <input type="hidden" name="orderId" value={order.id} />
-                    <input type="hidden" name="status" value={status ?? ""} />
-                    <button type="submit" className="text-brand">
-                      Mark shipped
-                    </button>
-                  </form>
-                )}
-                {order.status === "pending_payment" && (
-                  <form action={cancelOrderAction}>
-                    <input type="hidden" name="orderId" value={order.id} />
-                    <input type="hidden" name="status" value={status ?? ""} />
-                    <button type="submit" className="text-red-700">
-                      Cancel order
-                    </button>
-                  </form>
-                )}
+                <OrderAction
+                  orderId={order.id}
+                  current={order.status}
+                  filter={status}
+                />
               </div>
             </li>
           ))}

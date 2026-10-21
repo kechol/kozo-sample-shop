@@ -5,6 +5,17 @@ import type { ProductFormState } from "@/app/admin/actions";
 import type { Category, Product } from "@/db/schema";
 import { formatPriceInput } from "@/lib/money";
 
+const textFields: {
+  name: "name" | "slug" | "price" | "stock";
+  label: string;
+  inputMode?: "decimal" | "numeric";
+}[] = [
+  { name: "name", label: "Name" },
+  { name: "slug", label: "Slug" },
+  { name: "price", label: "Price (USD)", inputMode: "decimal" },
+  { name: "stock", label: "Stock", inputMode: "numeric" },
+];
+
 export function ProductForm({
   action,
   categories,
@@ -63,26 +74,13 @@ export function ProductForm({
           <input type="hidden" name="expectedStock" value={product.stock} />
         </>
       )}
-      {(
-        [
-          { name: "name", label: "Name" },
-          { name: "slug", label: "Slug" },
-          { name: "price", label: "Price (USD)" },
-          { name: "stock", label: "Stock" },
-        ] as const
-      ).map((field) => (
+      {textFields.map((field) => (
         <label key={field.name} className="text-sm">
           {field.label}
           <input
             name={field.name}
             defaultValue={initial[field.name]}
-            inputMode={
-              field.name === "price"
-                ? "decimal"
-                : field.name === "stock"
-                  ? "numeric"
-                  : undefined
-            }
+            inputMode={field.inputMode}
             aria-invalid={fieldError(field.name) ? true : undefined}
             aria-describedby={describedBy(field.name)}
             className={inputClass}

@@ -1,6 +1,7 @@
 import { and, asc, count, eq, ilike, or, type SQL } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import { categories, products } from "@/db/schema";
+import { pageWindow } from "@/lib/pagination";
 
 export const PAGE_SIZE = 12;
 
@@ -54,8 +55,7 @@ export async function listProducts(
     .innerJoin(categories, eq(products.categoryId, categories.id))
     .where(where);
   const total = totalRow?.value ?? 0;
-  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const page = Math.min(Math.max(1, Math.trunc(query.page ?? 1)), pageCount);
+  const { page, pageCount, offset } = pageWindow(total, PAGE_SIZE, query.page);
 
   const rows = await db
     .select({
@@ -70,7 +70,7 @@ export async function listProducts(
     .where(where)
     .orderBy(asc(products.name), asc(products.id))
     .limit(PAGE_SIZE)
-    .offset((page - 1) * PAGE_SIZE);
+    .offset(offset);
 
   return {
     items: rows.map(({ stock, ...row }) => ({ ...row, inStock: stock > 0 })),

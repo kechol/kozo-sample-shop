@@ -1,4 +1,7 @@
-import type { OrderStatus } from "@/db/schema";
+import { z } from "zod";
+import { type OrderStatus, orderStatus } from "@/db/schema";
+
+export const orderStatusSchema = z.enum(orderStatus.enumValues);
 
 export const orderStatusLabels: Record<OrderStatus, string> = {
   pending_payment: "Awaiting payment confirmation",

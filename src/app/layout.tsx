@@ -62,6 +62,11 @@ export default async function RootLayout({
               </Link>
               {user ? (
                 <>
+                  {user.role === "admin" && (
+                    <Link href="/admin" className="text-sm hover:text-brand">
+                      Admin
+                    </Link>
+                  )}
                   <Link
                     href="/account/orders"
                     className="text-sm hover:text-brand"

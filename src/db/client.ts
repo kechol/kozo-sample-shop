@@ -3,6 +3,7 @@ import postgres from "postgres";
 import * as schema from "./schema";
 
 export type Database = ReturnType<typeof createDatabase>;
+export type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
 
 export function createDatabase(url: string) {
   const client = postgres(url, { max: 10, onnotice: () => {} });

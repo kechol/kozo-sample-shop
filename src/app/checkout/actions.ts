@@ -66,6 +66,7 @@ export async function checkoutAction(
   if (result.ok) redirect(`/orders/${result.orderId}`);
   switch (result.reason) {
     case "payment_pending":
+    case "order_cancelled":
       redirect(`/orders/${result.orderId}`);
       break;
     case "empty_cart":

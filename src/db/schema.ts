@@ -15,12 +15,15 @@ import {
 
 // Tables for better-auth. Column names follow its core schema; the keys passed to its
 // Drizzle adapter map its models (user, session, account, verification) onto them.
+export const userRole = pgEnum("user_role", ["customer", "admin"]);
+
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
+  role: userRole("role").notNull().default("customer"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -152,6 +155,8 @@ export const orderStatus = pgEnum("order_status", [
   "pending_payment",
   "paid",
   "payment_failed",
+  "shipped",
+  "cancelled",
 ]);
 
 export const orders = pgTable(

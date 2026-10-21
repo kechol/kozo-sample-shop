@@ -8,8 +8,8 @@ credentials, is made up. Treat the repository as public.
 
 | Path | Contents |
 | --- | --- |
-| `src/app/` | Next.js App Router pages, Server Actions and the better-auth route |
-| `src/lib/` | Domain logic: catalog, cart, checkout, payments client, auth |
+| `src/app/` | Next.js App Router pages, Server Actions and the better-auth route; the admin under `admin/` |
+| `src/lib/` | Domain logic: catalog, cart, checkout, payments client, auth; admin products and orders under `admin/` |
 | `src/db/` | Drizzle schema, client, migrator and seed data |
 | `drizzle/` | Generated SQL migrations and their metadata |
 | `services/fake-payments/` | The local fake payment provider |
@@ -42,10 +42,13 @@ pnpm test:e2e           # needs `pnpm build` first
   input, call those functions and render.
 - Validate every Server Action input with zod before using it.
 - Check authorization on the server in the page or action that reads the data, never
-  only by hiding links.
+  only by hiding links. Every admin page and admin Server Action calls `requireAdmin()`.
 - Send every charge with the order id as the idempotency key. Release an order only on
   a definite refusal (4xx); any other failure leaves it `pending_payment`.
 - Lock rows that a decision depends on (`SELECT … FOR UPDATE`), in id order.
+- Change an order's status with an update conditioned on the status it leaves
+  (`WHERE status = …`), and return stock only in the transaction that moved the order
+  out of `pending_payment`, so concurrent changes never apply twice.
 - Use fictional data and reserved domains such as `example.com` in seeds and tests.
 - Write tests at the lowest level that can prove the behaviour: unit for pure
   functions, integration for database rules, e2e for what a buyer sees.
@@ -60,6 +63,7 @@ pnpm test:e2e           # needs `pnpm build` first
 | Stock, orders and access rules hold in the database | `integration` gate |
 | The app builds without a database | `build` gate |
 | Buyers can browse, buy and see only their own orders | `e2e` gate |
+| Only the admin account reaches admin pages and actions | `e2e` gate |
 | No secrets in the repository | gitleaks before each commit |
 | Generated migrations stay unedited | Review; `drizzle/` is a protected path |
 | Payment and auth rules stay intact | Review; `src/lib/payments/` and `src/lib/auth.ts` are protected paths |

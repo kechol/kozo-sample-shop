@@ -32,6 +32,10 @@ order page is shown only to its buyer: the signed-in account for an account's
 order, or the browser whose cart placed it for a guest order. Signing out
 clears the cart, so the next person on a shared browser starts empty.
 
+The admin account manages the shop under `/admin`: it creates and edits
+products, lists every order, marks paid orders shipped and cancels pending
+orders, which returns their stock. Other visitors get a 404 there.
+
 `pnpm db:seed` creates two test-only accounts:
 
 | Account | Email | Password |
@@ -57,7 +61,8 @@ refuses the request (any 4xx, such as a declined card), the order becomes
 `payment_failed`, the stock returns and the cart stays. When it times out or
 answers with anything else, the outcome is unknown, so the order stays
 `pending_payment` with its stock reserved, and the cart cannot check out again
-until that order is settled.
+until an admin cancels that order. A cancelled order stays cancelled even if
+its charge completes later; refunds are not part of the shop.
 
 ## Checks
 

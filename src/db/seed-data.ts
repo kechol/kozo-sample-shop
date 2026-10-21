@@ -270,10 +270,12 @@ export const seedAccounts = [
     name: "Sample Buyer",
     email: "buyer@example.com",
     password: "buyer-password-123",
+    role: "customer",
   },
   {
     name: "Sample Admin",
     email: "admin@example.com",
     password: "admin-password-123",
+    role: "admin",
   },
 ] as const;

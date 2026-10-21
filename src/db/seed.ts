@@ -24,6 +24,7 @@ export async function seed(db: Database) {
         name: account.name,
         email: account.email,
         emailVerified: true,
+        role: account.role,
       });
       // better-auth stores email and password sign-in as a "credential" account.
       await tx.insert(accounts).values({

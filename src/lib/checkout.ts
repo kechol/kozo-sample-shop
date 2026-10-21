@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
-import type { Database } from "@/db/client";
+import type { Database, Transaction } from "@/db/client";
 import { cartItems, carts, orderItems, orders, products } from "@/db/schema";
 import {
   type ChargeResult,
@@ -21,7 +21,8 @@ export type PlaceOrderResult =
   | { ok: false; reason: "empty_cart" }
   | { ok: false; reason: "insufficient_stock"; productNames: string[] }
   | { ok: false; reason: "payment_failed"; orderId: string; code: string }
-  | { ok: false; reason: "payment_pending"; orderId: string };
+  | { ok: false; reason: "payment_pending"; orderId: string }
+  | { ok: false; reason: "order_cancelled"; orderId: string };
 
 export async function placeOrder(
   db: Database,
@@ -60,13 +61,18 @@ export async function placeOrder(
     await releaseOrder(db, orderId, charge.code);
     return { ok: false, reason: "payment_failed", orderId, code: charge.code };
   }
-  await db.transaction(async (tx) => {
-    await tx
+  const paid = await db.transaction(async (tx) => {
+    // An admin may have cancelled the order and returned its stock while the charge was in flight.
+    const [updated] = await tx
       .update(orders)
       .set({ status: "paid", paymentChargeId: charge.chargeId })
-      .where(eq(orders.id, orderId));
+      .where(and(eq(orders.id, orderId), eq(orders.status, "pending_payment")))
+      .returning({ id: orders.id });
+    if (!updated) return false;
     await tx.delete(cartItems).where(eq(cartItems.cartId, input.cartId));
+    return true;
   });
+  if (!paid) return { ok: false, reason: "order_cancelled", orderId };
   return { ok: true, orderId };
 }
 
@@ -183,25 +189,33 @@ async function reserveOrder(
 
 async function releaseOrder(db: Database, orderId: string, code: string) {
   await db.transaction(async (tx) => {
-    const items = await tx
-      .select({
-        productId: orderItems.productId,
-        quantity: orderItems.quantity,
-      })
-      .from(orderItems)
-      .where(eq(orderItems.orderId, orderId))
-      .orderBy(asc(orderItems.productId));
-    for (const item of items) {
-      await tx
-        .update(products)
-        .set({ stock: sql`${products.stock} + ${item.quantity}` })
-        .where(eq(products.id, item.productId));
-    }
-    await tx
+    // Skipped when an admin already cancelled the order, which returned the stock once.
+    const [released] = await tx
       .update(orders)
       .set({ status: "payment_failed", paymentFailureCode: code })
-      .where(eq(orders.id, orderId));
+      .where(and(eq(orders.id, orderId), eq(orders.status, "pending_payment")))
+      .returning({ id: orders.id });
+    if (released) await returnStock(tx, orderId);
   });
+}
+
+// Callers must first move the order out of pending_payment in the same transaction, so the
+// stock of one order is returned at most once.
+export async function returnStock(tx: Transaction, orderId: string) {
+  const items = await tx
+    .select({
+      productId: orderItems.productId,
+      quantity: orderItems.quantity,
+    })
+    .from(orderItems)
+    .where(eq(orderItems.orderId, orderId))
+    .orderBy(asc(orderItems.productId));
+  for (const item of items) {
+    await tx
+      .update(products)
+      .set({ stock: sql`${products.stock} + ${item.quantity}` })
+      .where(eq(products.id, item.productId));
+  }
 }
 
 export async function getOrder(db: Database, orderId: string) {

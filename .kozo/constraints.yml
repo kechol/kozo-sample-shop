@@ -1,0 +1,39 @@
+# Gates for kozo. Each gate is defined once; a level lists the gates it runs, in order.
+version: 1
+prepare:
+  - pnpm install --frozen-lockfile
+  - pnpm db:up
+# Test files and the configuration that decides how tests run.
+tests:
+  - "**/*.test.ts"
+  - "e2e/**"
+  - "tests/**"
+  - "vitest.config.ts"
+  - "playwright.config.ts"
+gates:
+  typecheck:
+    run: pnpm typecheck
+  lint:
+    run: pnpm lint
+  unit:
+    run: pnpm test:unit
+  integration:
+    run: pnpm test:integration
+  build:
+    run: pnpm build
+  # Serves the output of the build gate, so it runs after build.
+  e2e:
+    run: pnpm test:e2e
+levels:
+  fast: [typecheck, lint, unit]
+  full: [typecheck, lint, unit, integration, build]
+  deep: [typecheck, lint, unit, integration, build, e2e]
+# How kozo prove runs only the changed tests; {files} becomes their paths.
+prove:
+  - files: ["src/**/*.test.ts", "services/**/*.test.ts"]
+    run: pnpm exec vitest run --project unit {files}
+  - files: ["tests/integration/**/*.test.ts"]
+    run: pnpm exec vitest run --project integration {files}
+  # The E2E tests serve the production build, so it is rebuilt from the files under test.
+  - files: ["e2e/**/*.spec.ts"]
+    run: pnpm build && pnpm exec playwright test {files}

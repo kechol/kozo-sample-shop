@@ -77,7 +77,9 @@ pnpm test:e2e           # serves the production build and the fake provider agai
 ```
 
 kozo runs the same commands as gates defined in
-[`.kozo/constraints.yml`](.kozo/constraints.yml).
+[`.kozo/constraints.yml`](.kozo/constraints.yml), and
+[`.kozo/charter.yml`](.kozo/charter.yml) sets what kozo may change here
+unattended.
 
 ## Eval cases
 

@@ -13,7 +13,9 @@ one verification at a time per machine. The tests use the separate
 The commands assume the `prepare` commands in
 [`constraints.yml`](constraints.yml) have run: dependencies are installed and
 PostgreSQL listens on `localhost:5433`. They need no network beyond this
-machine and no Docker access, so they also run inside kozo's sandbox.
+machine, no Docker access and no Unix sockets, so they also run inside kozo's
+sandbox. TypeScript runs through `node --import tsx` rather than the `tsx`
+command, which opens an IPC socket.
 
 Serve the production build, as the e2e gate does, so the result matches what
 the gates checked.
@@ -21,10 +23,10 @@ the gates checked.
 ```sh
 mkdir -p .output/verify
 test -f .env || cp .env.example .env
-pnpm db:migrate
-pnpm db:seed
+node --env-file-if-exists=.env --import tsx src/db/migrate.ts
+node --env-file-if-exists=.env --import tsx src/db/seed.ts
 pnpm build > .output/verify/build.log 2>&1
-node_modules/.bin/tsx --env-file-if-exists=.env services/fake-payments/server.ts \
+node --env-file-if-exists=.env --import tsx services/fake-payments/server.ts \
   > .output/verify/payments.log 2>&1 &
 echo $! > .output/verify/payments.pid
 node_modules/.bin/next start --port 3000 > .output/verify/app.log 2>&1 &
@@ -115,5 +117,5 @@ Leave PostgreSQL running.
 ```sh
 kill "$(cat .output/verify/app.pid)" "$(cat .output/verify/payments.pid)"
 rm .output/verify/app.pid .output/verify/payments.pid
-pnpm db:seed
+node --env-file-if-exists=.env --import tsx src/db/seed.ts
 ```

@@ -1,8 +1,10 @@
 # Gates for kozo. Each gate is defined once; a level lists the gates it runs, in order.
 version: 1
+# kozod starts these outside its sandbox, which keeps Docker out of reach of prepare and the gates.
+services:
+  - pnpm db:up
 prepare:
   - pnpm install --frozen-lockfile
-  - pnpm db:up
 # Test files and the configuration that decides how tests run.
 tests:
   - "**/*.test.ts"

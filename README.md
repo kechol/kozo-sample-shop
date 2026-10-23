@@ -79,7 +79,9 @@ pnpm test:e2e           # serves the production build and the fake provider agai
 kozo runs the same commands as gates defined in
 [`.kozo/constraints.yml`](.kozo/constraints.yml), and
 [`.kozo/charter.yml`](.kozo/charter.yml) sets what kozo may change here
-unattended.
+unattended. The checks share one database and fixed ports (5433, 3100 and
+4110), so they run one worktree at a time: a factory working on this
+repository keeps `concurrency: 1`.
 
 ## Eval cases
 

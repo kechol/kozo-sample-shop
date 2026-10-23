@@ -1,8 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 import { TEST_DATABASE_URL } from "./tests/support/database";
 
-const port = 3100;
-const paymentsPort = 4110;
+// kozo gives each worktree its own ports, so that worktrees run the E2E tests at once.
+const port = Number(process.env.KOZO_PORT_2 ?? 3100);
+const paymentsPort = Number(process.env.KOZO_PORT_3 ?? 4110);
 const paymentsSecretKey = "fp_test_e2e";
 
 export default defineConfig({

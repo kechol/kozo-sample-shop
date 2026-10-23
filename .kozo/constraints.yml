@@ -3,6 +3,8 @@ version: 1
 # kozod starts these outside its sandbox, which keeps Docker out of reach of prepare and the gates.
 services:
   - pnpm db:up
+# The database, the app and the fake payment provider, as KOZO_PORT_1 to KOZO_PORT_3.
+ports: 3
 prepare:
   - pnpm install --frozen-lockfile
 # Test files and the configuration that decides how tests run.

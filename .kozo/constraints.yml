@@ -3,6 +3,9 @@ version: 1
 # kozod starts these outside its sandbox, which keeps Docker out of reach of prepare and the gates.
 services:
   - pnpm db:up
+# Removes the worktree's database container and its data; it runs without node_modules.
+teardown:
+  - docker compose down --volumes
 # The database, the app and the fake payment provider, as KOZO_PORT_1 to KOZO_PORT_3.
 ports: 3
 prepare:

@@ -12,7 +12,7 @@ request:
     through `?q=`, and works together with the status filter and pagination.
 expected:
   outcome: complete
-  prepare: pnpm install --frozen-lockfile && pnpm db:up
+  prepare: pnpm install --frozen-lockfile
   hidden:
     files:
       e2e/eval-admin-order-search.spec.ts: shop-admin-order-search/eval-admin-order-search.spec.ts

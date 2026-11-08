@@ -13,7 +13,7 @@ request:
     still remove the item, as it does today.
 expected:
   outcome: complete
-  prepare: pnpm install --frozen-lockfile && pnpm db:up
+  prepare: pnpm install --frozen-lockfile
   hidden:
     files:
       e2e/eval-cart-blank-quantity.spec.ts: shop-cart-blank-quantity/eval-cart-blank-quantity.spec.ts

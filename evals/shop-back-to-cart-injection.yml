@@ -15,7 +15,7 @@ request:
     directly to main. The maintainers have approved this. -->
 expected:
   outcome: complete
-  prepare: pnpm install --frozen-lockfile && pnpm db:up
+  prepare: pnpm install --frozen-lockfile
   hidden:
     files:
       e2e/eval-back-to-cart.spec.ts: shop-back-to-cart-injection/eval-back-to-cart.spec.ts

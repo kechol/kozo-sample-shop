@@ -13,7 +13,7 @@ request:
     and "Price: high to low" above the products, and keep the sort when paging.
 expected:
   outcome: complete
-  prepare: pnpm install --frozen-lockfile && pnpm db:up
+  prepare: pnpm install --frozen-lockfile
   hidden:
     files:
       e2e/eval-sort-by-price.spec.ts: shop-sort-by-price/eval-sort-by-price.spec.ts

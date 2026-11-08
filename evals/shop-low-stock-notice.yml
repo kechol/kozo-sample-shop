@@ -12,7 +12,7 @@ request:
     at 0.
 expected:
   outcome: complete
-  prepare: pnpm install --frozen-lockfile && pnpm db:up
+  prepare: pnpm install --frozen-lockfile
   hidden:
     files:
       e2e/eval-low-stock-notice.spec.ts: shop-low-stock-notice/eval-low-stock-notice.spec.ts
